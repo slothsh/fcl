@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <expected>
 #include <fstream>
+#include <ranges>
 #include <ios>
 #include <optional>
 #include <string>
@@ -54,6 +55,8 @@ detail::ExpectedType ConfLexer::lexAst(std::ifstream& input_file) {
             context = PUSH_TOKEN(ast, token, NONE);
         } else if (auto token = ConfLexer::eatIdentifier(input_file)) {
             context = PUSH_TOKEN(ast, token, NONE);
+        } else if (auto token = ConfLexer::eatShellExpression(input_file)) {
+            context = PUSH_TOKEN(ast, token, NONE);
         } else if (auto token = ConfLexer::eatLiteral(input_file)) {
             context = PUSH_TOKEN(ast, token, NONE);
         } else if (auto token = ConfLexer::eatComment(input_file)) {
@@ -71,12 +74,67 @@ detail::ExpectedType ConfLexer::lexAst(std::ifstream& input_file) {
         }
     }
 
+    for (auto const& token : ast) {
+        INFO("{}: |{}|", token.kind, token.data);
+    }
+
     return ast;
 }
 
 std::optional<detail::Error> ConfLexer::pushToken(detail::Token&& token, detail::AstType& ast) {
     ast.push_back(std::move(token));
     return std::nullopt;
+}
+
+
+constexpr std::optional<detail::TokenKind> ConfLexer::terminatorFor(detail::TokenKind token_kind) {
+    using enum TokenKind;
+
+    switch (token_kind) {
+        case OPEN_BRACE: return CLOSE_BRACE;
+        case OPEN_DOUBLE_BRACE: return CLOSE_DOUBLE_BRACE;
+        default: return std::nullopt;
+    }
+}
+
+
+std::optional<std::string_view> ConfLexer::peekTokenKind(std::ifstream& stream, detail::TokenKind token_kind) {
+    size_t reset = stream.tellg();
+
+    std::array<char, 32> token_buffer{};
+
+    auto token_kind_string = ConfLexer::tokenKindString(token_kind);
+    if (!token_kind_string) {
+        return std::nullopt;
+    }
+
+    stream.read(&token_buffer[0], token_kind_string->size());
+    stream.seekg(reset);
+
+    if (std::string{token_buffer.data(), token_kind_string->size()} == token_kind_string) {
+        return token_kind_string;
+    }
+
+    return std::nullopt;
+}
+
+
+constexpr std::optional<std::string_view> ConfLexer::tokenKindString(TokenKind token_kind) {
+    using enum TokenKind;
+
+    switch (token_kind) {
+        case EQUALS:             return STRING_EQUALS;
+        case OPEN_BRACE:         return STRING_OPEN_BRACE;
+        case CLOSE_BRACE:        return STRING_CLOSE_BRACE;
+        case OPEN_DOUBLE_BRACE:  return STRING_OPEN_DOUBLE_BRACE;
+        case CLOSE_DOUBLE_BRACE: return STRING_CLOSE_DOUBLE_BRACE;
+        case TAB_FEED:           return STRING_TAB_FEED;
+        case LINE_FEED:          return STRING_LINE_FEED;
+        case VERTICAL_FEED:      return STRING_VERTICAL_FEED;
+        case SPACE:              return STRING_SPACE;
+        case KEYWORD_INCLUDE:    return STRING_KEYWORD_INCLUDE;
+        default:                 return std::nullopt;
+    }
 }
 
 constexpr bool ConfLexer::isSpace(char c) {
@@ -96,7 +154,7 @@ constexpr bool ConfLexer::isIdentifierStart(char c) {
 constexpr bool ConfLexer::isPunctuatorStart(char c) {
     return std::ranges::find_if(
         ConfLexer::PUNCTUATORS,
-        [c](std::pair<TokenKind, const char*> const& pair) {
+        [c](std::pair<TokenKind, std::string_view> const& pair) {
             return std::string_view{pair.second}.front() == c;
         }
     ) != ConfLexer::PUNCTUATORS.end();
@@ -143,7 +201,7 @@ std::optional<detail::Token> ConfLexer::eatKeyword(std::ifstream& stream) {
     auto const keyword = std::ranges::find_if(
         ConfLexer::KEYWORDS,
         [keyword_chunk = std::string_view{token_buffer.data(), cursor}]
-        (std::pair<TokenKind, const char*> const& pair) {
+        (std::pair<TokenKind, std::string_view> const& pair) {
             return pair.second == keyword_chunk;
         }
     );
@@ -180,6 +238,59 @@ std::optional<detail::Token> ConfLexer::eatIdentifier(std::ifstream& stream) {
     return Token {
         .data = std::string{token_buffer.data(), cursor},
         .kind = IDENTIFIER,
+        .position = static_cast<size_t>(stream.tellg()),
+        .length = cursor,
+    };
+}
+
+std::optional<detail::Token> ConfLexer::eatShellExpression(std::ifstream& stream) {
+    using enum TokenKind;
+
+    size_t cursor = 0;
+    std::array<char, 1024> token_buffer{};
+    size_t reset = stream.tellg();
+
+    auto punctuator_kind = UNKNOWN;
+    auto terminator_kind = UNKNOWN;
+    for (auto const& [kind, chunk] : ConfLexer::SHELL_EXPRESSION_OPEN_PUNCTUATORS) {
+        stream.read(&token_buffer[0], std::string_view{chunk}.size());
+        if (std::string_view{token_buffer.data(), 2} == chunk) {
+            punctuator_kind = kind;
+            terminator_kind = ConfLexer::terminatorFor(punctuator_kind).value_or(UNKNOWN);
+            break;
+        }
+    }
+
+    if (punctuator_kind == UNKNOWN) {
+        stream.seekg(reset);
+        return std::nullopt;
+    }
+
+    if (terminator_kind == UNKNOWN) {
+        stream.seekg(reset);
+        WARN("no matching terminator for shell expression punctuator: {}", punctuator_kind);
+        return std::nullopt;
+    }
+
+    auto const increment_stream = [&stream](std::string_view terminator_kind_string) {
+        stream.seekg(terminator_kind_string.size(), std::ios::cur);
+        return std::make_optional(terminator_kind_string);
+    };
+
+    while (!ConfLexer::peekTokenKind(stream, terminator_kind).and_then(increment_stream)) {
+        stream.read(&token_buffer[cursor++], 1);
+    }
+
+    auto data = std::string_view{token_buffer.data(), cursor}
+        | std::views::drop_while(ConfLexer::isSpace)
+        | std::views::reverse
+        | std::views::drop_while(ConfLexer::isSpace)
+        | std::views::reverse
+        | std::ranges::to<std::string>();
+
+    return Token {
+        .data = std::move(data),
+        .kind = SHELL_EXPRESSION,
         .position = static_cast<size_t>(stream.tellg()),
         .length = cursor,
     };
@@ -311,7 +422,7 @@ std::optional<detail::Token> ConfLexer::eatPunctuator(std::ifstream& stream) {
     auto const punctuator = std::ranges::find_if(
         ConfLexer::PUNCTUATORS,
         [punctuator_chunk = std::string_view{token_buffer.data(), cursor}]
-        (std::pair<TokenKind, const char*> const& pair) {
+        (std::pair<TokenKind, std::string_view> const& pair) {
             return pair.second == punctuator_chunk;
         }
     );
