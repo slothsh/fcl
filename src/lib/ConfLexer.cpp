@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cctype>
 #include <cstddef>
 #include <expected>
@@ -49,6 +50,8 @@ detail::ExpectedType ConfLexer::lexAst(std::ifstream& input_file) {
             context = NONE;
         } else if (auto token = ConfLexer::eatPunctuator(input_file)) {
             context = PUSH_TOKEN(ast, token, NONE);
+        } else if (auto token = ConfLexer::eatKeyword(input_file)) {
+            context = PUSH_TOKEN(ast, token, NONE);
         } else if (auto token = ConfLexer::eatIdentifier(input_file)) {
             context = PUSH_TOKEN(ast, token, NONE);
         } else if (auto token = ConfLexer::eatLiteral(input_file)) {
@@ -72,10 +75,23 @@ constexpr bool ConfLexer::isSpace(char c) {
     return std::isspace(static_cast<unsigned char>(c));
 }
 
+constexpr bool ConfLexer::isKeywordStart(char c) {
+    return ('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z');
+}
+
 constexpr bool ConfLexer::isIdentifierStart(char c) {
     return c == '_'
         || ('A' <= c && c <= 'Z')
         || ('a' <= c && c <= 'z');
+}
+
+constexpr bool ConfLexer::isPunctuatorStart(char c) {
+    return std::ranges::find_if(
+        ConfLexer::PUNCTUATORS,
+        [c](std::pair<TokenKind, const char*> const& pair) {
+            return std::string_view{pair.second}.front() == c;
+        }
+    ) != ConfLexer::PUNCTUATORS.end();
 }
 
 constexpr bool ConfLexer::isIdentifier(char c) {
@@ -98,6 +114,43 @@ constexpr bool ConfLexer::isCommentStart(char c) {
 
 constexpr bool ConfLexer::isPathLiteralStart(char c) {
     return c == '.' || c == '/';
+}
+
+std::optional<detail::Token> ConfLexer::eatKeyword(std::ifstream& stream) {
+    using enum TokenKind;
+
+    if (!ConfLexer::isKeywordStart(stream.peek())) {
+        return std::nullopt;
+    }
+
+    size_t cursor = 0;
+    std::array<char, 1024> token_buffer{};
+
+    size_t reset = stream.tellg();
+
+    while (!ConfLexer::isSpace(stream.peek())) {
+        stream.read(&token_buffer[cursor++], 1);
+    }
+
+    auto const keyword = std::ranges::find_if(
+        ConfLexer::KEYWORDS,
+        [keyword_chunk = std::string_view{token_buffer.data(), cursor}]
+        (std::pair<TokenKind, const char*> const& pair) {
+            return pair.second == keyword_chunk;
+        }
+    );
+
+    if (keyword == ConfLexer::KEYWORDS.end()) {
+        stream.seekg(reset);
+        return std::nullopt;
+    }
+
+    return Token {
+        .data = std::string{token_buffer.data(), cursor},
+        .kind = keyword->first,
+        .position = static_cast<size_t>(stream.tellg()),
+        .length = cursor,
+    };
 }
 
 std::optional<detail::Token> ConfLexer::eatIdentifier(std::ifstream& stream) {
@@ -234,34 +287,35 @@ std::optional<detail::Token> ConfLexer::eatSpaces(std::ifstream& stream) {
 std::optional<detail::Token> ConfLexer::eatPunctuator(std::ifstream& stream) {
     using enum TokenKind;
 
+    if (!ConfLexer::isPunctuatorStart(stream.peek())) {
+        return std::nullopt;
+    }
+
     size_t cursor = 0;
     std::array<char, 1024> token_buffer{};
-    auto token_kind = UNKNOWN;
 
-    switch (stream.peek()) {
-        case '=': {
-            stream.read(&token_buffer[cursor++], 1);
-            token_kind = EQUALS;
-        } break;
+    size_t reset = stream.tellg();
 
-        case '{': {
-            stream.read(&token_buffer[cursor++], 1);
-            token_kind = OPEN_BRACE;
-        } break;
+    while (!ConfLexer::isSpace(stream.peek())) {
+        stream.read(&token_buffer[cursor++], 1);
+    }
 
-        case '}': {
-            stream.read(&token_buffer[cursor++], 1);
-            token_kind = CLOSE_BRACE;
-        } break;
+    auto const punctuator = std::ranges::find_if(
+        ConfLexer::PUNCTUATORS,
+        [punctuator_chunk = std::string_view{token_buffer.data(), cursor}]
+        (std::pair<TokenKind, const char*> const& pair) {
+            return pair.second == punctuator_chunk;
+        }
+    );
 
-        default: {
-            return std::nullopt;
-        };
+    if (punctuator == ConfLexer::PUNCTUATORS.end()) {
+        stream.seekg(reset);
+        return std::nullopt;
     }
 
     return Token {
         .data = std::string{token_buffer.data(), cursor},
-        .kind = token_kind,
+        .kind = punctuator->first,
         .position = static_cast<size_t>(stream.tellg()),
         .length = cursor,
     };

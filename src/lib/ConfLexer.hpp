@@ -25,9 +25,18 @@ public:
         VERTICAL_FEED,
         SPACE,
         COMMENT,
+        KEYWORD_INCLUDE,
     };
 
-    static constexpr std::array PUNCTUATORS { '=', '{', '}' };
+    static constexpr std::array KEYWORDS {
+        std::pair{ TokenKind::KEYWORD_INCLUDE, "include" },
+    };
+
+    static constexpr std::array PUNCTUATORS {
+        std::pair{ TokenKind::EQUALS, "=" },
+        std::pair{ TokenKind::OPEN_BRACE, "{" },
+        std::pair{ TokenKind::CLOSE_BRACE, "}" },
+    };
 
     struct Token {
         std::string data;
@@ -57,14 +66,17 @@ public:
     static std::optional<Error> pushToken(Token&& token, AstType& ast);
 
     static constexpr bool isSpace(char c);
+    static constexpr bool isKeywordStart(char c);
     static constexpr bool isIdentifier(char c);
     static constexpr bool isIdentifierStart(char c);
+    static constexpr bool isPunctuatorStart(char c);
     static constexpr bool isStringLiteralStart(char c);
     static constexpr bool isNumberLiteralStart(char c);
     static constexpr bool isNumberLiteral(char c);
     static constexpr bool isCommentStart(char c);
     static constexpr bool isPathLiteralStart(char c);
 
+    static std::optional<Token> eatKeyword(std::ifstream& stream);
     static std::optional<Token> eatIdentifier(std::ifstream& stream);
     static std::optional<Token> eatLiteral(std::ifstream& stream);
     static std::optional<Token> eatSpaces(std::ifstream& stream);
@@ -91,6 +103,7 @@ struct std::formatter<ConfLexer::TokenKind> : std::formatter<std::string_view> {
             case LINE_FEED:       return "LINE_FEED";
             case VERTICAL_FEED:   return "VERTICAL_FEED";
             case SPACE:           return "SPACE";
+            case KEYWORD_INCLUDE: return "KEYWORD_INCLUDE";
         }
     }
 
