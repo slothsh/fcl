@@ -10,3 +10,4 @@
 #include "../../ConnectionHandler.hpp"
 #include "../../Scheduler.hpp"
 #include "../../ThreadPool.hpp"
+#include "../../ConfLexer.hpp"

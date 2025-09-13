@@ -160,7 +160,7 @@ detail::CommandLineArgumentsType CommandLineArgumentParser::parseArguments(int a
         std::string_view const item = input_arguments[i];
 
         if (i == 0) {
-            WARN(std::format("not implemented: program name: {}", item));
+            WARN("not implemented: program name: {}", item);
         } else if (auto const parsed = parseSingleShortFlag(item); parsed) {
             auto next_value = parseNextAsValue(i, input_arguments);
 

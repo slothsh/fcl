@@ -8,6 +8,7 @@ add_library(
         ThreadPool.cpp
         CommandLineArgumentParser.cpp
         UserConfiguration.cpp
+        ConfLexer.cpp
 )
 
 target_precompile_headers(
@@ -23,6 +24,7 @@ target_precompile_headers(
         Scheduler.hpp
         ThreadPool.hpp
         UserConfiguration.hpp
+        ConfLexer.hpp
 )
 
 add_subdirectory(include/)

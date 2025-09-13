@@ -8,6 +8,11 @@
     std::exit(1);                                                        \
 } while (false)
 
-#define WARN(message) do {                                               \
-    std::println(stderr, "{}:{} WARNING {}", __FILE__, __LINE__, message); \
+#define WARN(message, ...) do {                                                      \
+    std::println(stderr, "{}:{} WARNING "#message, __FILE__, __LINE__, __VA_ARGS__); \
 } while (false)
+
+#define INFO(message, ...) do {                                           \
+    std::println("{}:{} INFO "#message, __FILE__, __LINE__, __VA_ARGS__); \
+} while (false)
+
