@@ -60,6 +60,14 @@ detail::ExpectedType ConfLexer::lexAst(std::ifstream& input_file) {
             context = PUSH_TOKEN(ast, token, NONE);
         } else {
             WARN("unknown token: {}", static_cast<char>(input_file.peek()));
+            token = Token {
+                .data = std::string{static_cast<char>(input_file.peek()), 1},
+                .kind = UNKNOWN,
+                .position = static_cast<size_t>(input_file.tellg()),
+                .length = 1,
+            };
+            context = PUSH_TOKEN(ast, token, NONE);
+            input_file.seekg(1, std::ios::cur);
         }
     }
 
