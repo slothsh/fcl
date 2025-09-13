@@ -1,4 +1,3 @@
-#include <algorithm>
 #include <cctype>
 #include <cstddef>
 #include <expected>
@@ -97,6 +96,10 @@ constexpr bool ConfLexer::isCommentStart(char c) {
     return c == '#';
 }
 
+constexpr bool ConfLexer::isPathLiteralStart(char c) {
+    return c == '.' || c == '/';
+}
+
 std::optional<detail::Token> ConfLexer::eatIdentifier(std::ifstream& stream) {
     using enum TokenKind;
 
@@ -131,6 +134,8 @@ std::optional<detail::Token> ConfLexer::eatLiteral(std::ifstream& stream) {
 
     if (ConfLexer::isStringLiteralStart(stream.peek())) {
         token_kind = STRING_LITERAL;
+    } else if (ConfLexer::isPathLiteralStart(stream.peek())) {
+        token_kind = PATH_LITERAL;
     } else if (ConfLexer::isNumberLiteralStart(stream.peek())) {
         token_kind = NUMBER_LITERAL;
     } else {
@@ -146,6 +151,12 @@ std::optional<detail::Token> ConfLexer::eatLiteral(std::ifstream& stream) {
             }
 
             stream.read(&token_buffer[cursor++], 1);
+        } break;
+
+        case PATH_LITERAL: {
+            while (!ConfLexer::isSpace(stream.peek())) {
+                stream.read(&token_buffer[cursor++], 1);
+            }
         } break;
 
         case NUMBER_LITERAL: {

@@ -2,9 +2,11 @@
 
 #include <array>
 #include <expected>
+#include <format>
 #include <fstream>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 class ConfLexer {
@@ -61,10 +63,39 @@ public:
     static constexpr bool isNumberLiteralStart(char c);
     static constexpr bool isNumberLiteral(char c);
     static constexpr bool isCommentStart(char c);
+    static constexpr bool isPathLiteralStart(char c);
 
     static std::optional<Token> eatIdentifier(std::ifstream& stream);
     static std::optional<Token> eatLiteral(std::ifstream& stream);
     static std::optional<Token> eatSpaces(std::ifstream& stream);
     static std::optional<Token> eatPunctuator(std::ifstream& stream);
     static std::optional<Token> eatComment(std::ifstream& stream);
+};
+
+template <>
+struct std::formatter<ConfLexer::TokenKind> : std::formatter<std::string_view> {
+    using enum ConfLexer::TokenKind;
+
+    static constexpr std::string_view to_string(ConfLexer::TokenKind kind) {
+        switch (kind) {
+            case UNKNOWN:         return "UNKNOWN";
+            case IDENTIFIER:      return "IDENTIFIER";
+            case EQUALS:          return "EQUALS";
+            case NUMBER_LITERAL:  return "NUMBER";
+            case STRING_LITERAL:  return "STRING_LITERAL";
+            case PATH_LITERAL:    return "PATH_LITERAL";
+            case COMMENT:         return "COMMENT";
+            case OPEN_BRACE:      return "OPEN_BRACE";
+            case CLOSE_BRACE:     return "CLOSE_BRACE";
+            case TAB_FEED:        return "TAB_FEED";
+            case LINE_FEED:       return "LINE_FEED";
+            case VERTICAL_FEED:   return "VERTICAL_FEED";
+            case SPACE:           return "SPACE";
+        }
+    }
+
+    template <typename FormatContext>
+    auto format(ConfLexer::TokenKind kind, FormatContext& ctx) const {
+        return std::formatter<std::string_view>::format(to_string(kind), ctx);
+    }
 };
