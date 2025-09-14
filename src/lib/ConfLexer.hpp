@@ -22,6 +22,10 @@ public:
         CLOSE_BRACE,
         OPEN_DOUBLE_BRACE,
         CLOSE_DOUBLE_BRACE,
+        OPEN_QUOTE,
+        CLOSE_QUOTE,
+        OPEN_DOUBLE_QUOTE,
+        CLOSE_DOUBLE_QUOTE,
         TAB_FEED,
         LINE_FEED,
         VERTICAL_FEED,
@@ -36,6 +40,10 @@ public:
     static constexpr std::string_view STRING_CLOSE_BRACE         = "}";
     static constexpr std::string_view STRING_OPEN_DOUBLE_BRACE   = "{{";
     static constexpr std::string_view STRING_CLOSE_DOUBLE_BRACE  = "}}";
+    static constexpr std::string_view STRING_OPEN_QUOTE          = "'";
+    static constexpr std::string_view STRING_CLOSE_QUOTE         = "'";
+    static constexpr std::string_view STRING_OPEN_DOUBLE_QUOTE   = "\"";
+    static constexpr std::string_view STRING_CLOSE_DOUBLE_QUOTE  = "\"";
     static constexpr std::string_view STRING_TAB_FEED            = "\t";
     static constexpr std::string_view STRING_LINE_FEED           = "\n";
     static constexpr std::string_view STRING_VERTICAL_FEED       = "\v";
@@ -52,6 +60,16 @@ public:
         std::pair{ TokenKind::EQUALS, STRING_EQUALS },
         std::pair{ TokenKind::OPEN_BRACE, STRING_OPEN_BRACE },
         std::pair{ TokenKind::CLOSE_BRACE, STRING_CLOSE_BRACE },
+    };
+
+    static constexpr std::array STRING_OPEN_PUNCTUATORS {
+        std::pair{ TokenKind::OPEN_QUOTE, STRING_OPEN_QUOTE },
+        std::pair{ TokenKind::OPEN_DOUBLE_QUOTE, STRING_OPEN_DOUBLE_QUOTE },
+    };
+
+    static constexpr std::array STRING_CLOSE_PUNCTUATORS {
+        std::pair{ TokenKind::CLOSE_QUOTE, STRING_CLOSE_QUOTE },
+        std::pair{ TokenKind::CLOSE_DOUBLE_QUOTE, STRING_CLOSE_DOUBLE_QUOTE },
     };
 
     static constexpr std::array SHELL_EXPRESSION_OPEN_PUNCTUATORS {
@@ -110,6 +128,39 @@ public:
     static std::optional<Token> eatSpaces(std::ifstream& stream);
     static std::optional<Token> eatPunctuator(std::ifstream& stream);
     static std::optional<Token> eatComment(std::ifstream& stream);
+
+    template<size_t N>
+    static constexpr std::optional<std::pair<TokenKind, TokenKind>> peekDelimitersFor(std::ifstream& stream, std::array<std::pair<TokenKind, std::string_view>, N> const& open_delimiters) {
+        using enum TokenKind;
+
+        size_t reset = stream.tellg();
+        std::array<char, 1024> token_buffer{};
+
+        auto punctuator_kind = UNKNOWN;
+        auto terminator_kind = UNKNOWN;
+        for (auto const& [kind, chunk] : open_delimiters) {
+            stream.read(&token_buffer[0], chunk.size());
+            if (std::string_view{token_buffer.data(), chunk.size()} == chunk) {
+                punctuator_kind = kind;
+                terminator_kind = ConfLexer::terminatorFor(punctuator_kind).value_or(UNKNOWN);
+                break;
+            } else {
+                stream.seekg(-chunk.size(), std::ios::cur);
+            }
+        }
+
+        if (punctuator_kind == UNKNOWN) {
+            stream.seekg(reset);
+            return std::nullopt;
+        }
+
+        if (terminator_kind == UNKNOWN) {
+            stream.seekg(reset);
+            return std::nullopt;
+        }
+
+        return std::make_pair(punctuator_kind, terminator_kind);
+    }
 };
 
 template <>
@@ -129,6 +180,10 @@ struct std::formatter<ConfLexer::TokenKind> : std::formatter<std::string_view> {
             case CLOSE_BRACE:        return "CLOSE_BRACE";
             case OPEN_DOUBLE_BRACE:  return "OPEN_DOUBLE_BRACE";
             case CLOSE_DOUBLE_BRACE: return "CLOSE_DOUBLE_BRACE";
+            case OPEN_QUOTE:         return "OPEN_QUOTE";
+            case CLOSE_QUOTE:        return "CLOSE_QUOTE";
+            case OPEN_DOUBLE_QUOTE:  return "OPEN_DOUBLE_QUOTE";
+            case CLOSE_DOUBLE_QUOTE: return "CLOSE_DOUBLE_QUOTE";
             case TAB_FEED:           return "TAB_FEED";
             case LINE_FEED:          return "LINE_FEED";
             case VERTICAL_FEED:      return "VERTICAL_FEED";

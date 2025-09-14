@@ -91,8 +91,10 @@ constexpr std::optional<detail::TokenKind> ConfLexer::terminatorFor(detail::Toke
     using enum TokenKind;
 
     switch (token_kind) {
-        case OPEN_BRACE: return CLOSE_BRACE;
+        case OPEN_BRACE:        return CLOSE_BRACE;
         case OPEN_DOUBLE_BRACE: return CLOSE_DOUBLE_BRACE;
+        case OPEN_QUOTE:        return CLOSE_QUOTE;
+        case OPEN_DOUBLE_QUOTE: return CLOSE_DOUBLE_QUOTE;
         default: return std::nullopt;
     }
 }
@@ -128,6 +130,10 @@ constexpr std::optional<std::string_view> ConfLexer::tokenKindString(TokenKind t
         case CLOSE_BRACE:        return STRING_CLOSE_BRACE;
         case OPEN_DOUBLE_BRACE:  return STRING_OPEN_DOUBLE_BRACE;
         case CLOSE_DOUBLE_BRACE: return STRING_CLOSE_DOUBLE_BRACE;
+        case OPEN_DOUBLE_QUOTE:  return STRING_OPEN_DOUBLE_QUOTE;
+        case CLOSE_DOUBLE_QUOTE: return STRING_CLOSE_DOUBLE_QUOTE;
+        case OPEN_QUOTE:         return STRING_OPEN_QUOTE;
+        case CLOSE_QUOTE:        return STRING_CLOSE_QUOTE;
         case TAB_FEED:           return STRING_TAB_FEED;
         case LINE_FEED:          return STRING_LINE_FEED;
         case VERTICAL_FEED:      return STRING_VERTICAL_FEED;
@@ -167,7 +173,8 @@ constexpr bool ConfLexer::isIdentifier(char c) {
 }
 
 constexpr bool ConfLexer::isStringLiteralStart(char c) {
-    return c == '\'' || c == '"';
+    auto const char_string = std::string_view{&c, 1};
+    return char_string == STRING_OPEN_QUOTE || char_string == STRING_OPEN_DOUBLE_QUOTE;
 }
 
 constexpr bool ConfLexer::isNumberLiteralStart(char c) {
@@ -250,32 +257,17 @@ std::optional<detail::Token> ConfLexer::eatShellExpression(std::ifstream& stream
     std::array<char, 1024> token_buffer{};
     size_t reset = stream.tellg();
 
-    auto punctuator_kind = UNKNOWN;
-    auto terminator_kind = UNKNOWN;
-    for (auto const& [kind, chunk] : ConfLexer::SHELL_EXPRESSION_OPEN_PUNCTUATORS) {
-        stream.read(&token_buffer[0], std::string_view{chunk}.size());
-        if (std::string_view{token_buffer.data(), 2} == chunk) {
-            punctuator_kind = kind;
-            terminator_kind = ConfLexer::terminatorFor(punctuator_kind).value_or(UNKNOWN);
-            break;
-        }
-    }
-
-    if (punctuator_kind == UNKNOWN) {
-        stream.seekg(reset);
-        return std::nullopt;
-    }
-
-    if (terminator_kind == UNKNOWN) {
-        stream.seekg(reset);
-        WARN("no matching terminator for shell expression punctuator: {}", punctuator_kind);
-        return std::nullopt;
-    }
-
     auto const increment_stream = [&stream](std::string_view terminator_kind_string) {
         stream.seekg(terminator_kind_string.size(), std::ios::cur);
         return std::make_optional(terminator_kind_string);
     };
+
+    auto const delimiters = ConfLexer::peekDelimitersFor(stream, ConfLexer::SHELL_EXPRESSION_OPEN_PUNCTUATORS);
+    if (!delimiters) {
+        return std::nullopt;
+    }
+
+    auto const& [_, terminator_kind] = delimiters.value();
 
     while (!ConfLexer::peekTokenKind(stream, terminator_kind).and_then(increment_stream)) {
         stream.read(&token_buffer[cursor++], 1);
@@ -299,6 +291,7 @@ std::optional<detail::Token> ConfLexer::eatShellExpression(std::ifstream& stream
 std::optional<detail::Token> ConfLexer::eatLiteral(std::ifstream& stream) {
     using enum TokenKind;
 
+    size_t reset = stream.tellg();
     size_t cursor = 0;
     std::array<char, 1024> token_buffer{};
 
@@ -314,24 +307,34 @@ std::optional<detail::Token> ConfLexer::eatLiteral(std::ifstream& stream) {
         return std::nullopt;
     }
 
-    stream.read(&token_buffer[cursor++], 1);
-
     switch (token_kind) {
         case STRING_LITERAL: {
-            while (!ConfLexer::isStringLiteralStart(stream.peek())) {
-                stream.read(&token_buffer[cursor++], 1);
+            auto const delimiters = ConfLexer::peekDelimitersFor(stream, ConfLexer::STRING_OPEN_PUNCTUATORS);
+            if (!delimiters) {
+                return std::nullopt;
             }
 
-            stream.read(&token_buffer[cursor++], 1);
+            auto const increment_stream = [&stream](std::string_view terminator_kind_string) {
+                stream.seekg(terminator_kind_string.size(), std::ios::cur);
+                return std::make_optional(terminator_kind_string);
+            };
+
+            auto const& [_, terminator_kind] = delimiters.value();
+
+            while (!ConfLexer::peekTokenKind(stream, terminator_kind).and_then(increment_stream)) {
+                stream.read(&token_buffer[cursor++], 1);
+            }
         } break;
 
         case PATH_LITERAL: {
+            stream.read(&token_buffer[cursor++], 1);
             while (!ConfLexer::isSpace(stream.peek())) {
                 stream.read(&token_buffer[cursor++], 1);
             }
         } break;
 
         case NUMBER_LITERAL: {
+            stream.read(&token_buffer[cursor++], 1);
             while (!ConfLexer::isSpace(stream.peek())) {
                 stream.read(&token_buffer[cursor++], 1);
             }
