@@ -11,11 +11,13 @@ public:
     using TokenKindType = typename ConfLexer::TokenKind;
     using TokenListType = typename ConfLexer::TokenListType;
 
+    struct RootBlock;
     struct NamedBlock;
     struct KeywordBinOp;
     struct NamedDeclaration;
 
     using Node = std::variant<
+        RootBlock,
         NamedBlock,
         KeywordBinOp,
         NamedDeclaration
@@ -23,9 +25,15 @@ public:
     using NodePtr = std::unique_ptr<Node>;
 
     enum class NodeKind {
+        ROOT_BLOCK,
         NAMED_BLOCK,
         KEYWORD_BIN_OP,
         NAMED_DECLARATION,
+    };
+
+    struct RootBlock {
+        NodeKind kind;
+        std::vector<NodePtr> nodes;
     };
 
     struct NamedBlock {
@@ -82,6 +90,7 @@ struct std::formatter<ConfParser::NodeKind> : std::formatter<std::string_view> {
 
     static constexpr std::string_view to_string(ConfParser::NodeKind kind) {
         switch (kind) {
+            case ROOT_BLOCK:              return "ROOT_BLOCK";
             case NAMED_BLOCK:       return "NAMED_BLOCK";
             case KEYWORD_BIN_OP:    return "KEYWORD_BIN_OP";
             case NAMED_DECLARATION: return "NAMED_DECLARATION";

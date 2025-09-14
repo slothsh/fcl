@@ -7,6 +7,12 @@ void printAst(typename ConfParser::NodePtr const& node, int indent = 0) {
     if (!node) return;
 
     const auto visitor = Visitors {
+        [&](ConfParser::RootBlock const& node) {
+            std::println("{:>{}}{}", " ", indent, node.kind);
+            for (auto const& child : node.nodes) {
+                printAst(child, indent + 4);
+            }
+        },
         [&](ConfParser::NamedBlock const& node) {
             std::println("{:>{}}{}: {}", " ", indent, node.kind, node.name.data);
             for (auto const& child : node.nodes) {

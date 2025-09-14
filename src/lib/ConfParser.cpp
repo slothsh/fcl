@@ -24,15 +24,29 @@ namespace detail {
 
 std::optional<detail::NodePtr> ConfParser::parse(detail::TokenListType const& token_list) {
     using enum Error;
+    using enum NodeKind;
 
     auto parser = ConfParser{token_list};
 
-    return parser
-        .parse()
-        .or_else([](Error error) {
-            WARN("not implemented", "");
-            return std::expected<NodePtr, Error>{NodePtr{nullptr}};
-        }).value();
+    std::vector<NodePtr> nodes{};
+
+    while (true) {
+        auto node = parser.parse();
+        if (!node) {
+            break;
+        }
+
+        nodes.push_back(std::move(node.value()));
+    }
+
+    return std::make_unique<Node>(
+        Node {
+            RootBlock {
+                .kind = ROOT_BLOCK,
+                .nodes = std::move(nodes),
+            }
+        }
+    );
 }
 
 ConfParser::ConfParser(detail::TokenListType const& token_list)
