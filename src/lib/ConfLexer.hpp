@@ -50,6 +50,7 @@ public:
     static constexpr std::string_view STRING_SPACE               = " ";
     static constexpr std::string_view STRING_COMMENT_SINGLE_LINE = "#";
     static constexpr std::string_view STRING_KEYWORD_INCLUDE     = "include";
+    static constexpr std::string_view STRING_ESCAPE_SEQUENCE     = "\\";
 
     static constexpr std::array KEYWORDS {
         std::pair{ TokenKind::KEYWORD_INCLUDE, STRING_KEYWORD_INCLUDE },
@@ -107,6 +108,7 @@ public:
 
     static std::optional<Error> pushToken(Token&& token, TokenListType& ast);
     static std::optional<std::string_view> peekTokenKind(std::ifstream& stream, TokenKind token_kind);
+    static std::optional<char> peekEscapedCharacter(std::ifstream& stream);
 
     static constexpr std::optional<TokenKind> terminatorFor(TokenKind token_kind);
     static constexpr std::optional<std::string_view> tokenKindString(TokenKind token_kind);

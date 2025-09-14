@@ -3,9 +3,10 @@
 #include <cstddef>
 #include <expected>
 #include <fstream>
-#include <ranges>
 #include <ios>
 #include <optional>
+#include <ranges>
+#include <ranges>
 #include <string>
 #include <string_view>
 
@@ -128,6 +129,21 @@ std::optional<std::string_view> ConfLexer::peekTokenKind(std::ifstream& stream, 
     return std::nullopt;
 }
 
+std::optional<char> ConfLexer::peekEscapedCharacter(std::ifstream& stream) {
+    size_t reset = stream.tellg();
+
+    std::array<char, 2> token_buffer{};
+
+    char c = stream.peek();
+    if (std::string_view{&c, 1} == STRING_ESCAPE_SEQUENCE) {
+        stream.seekg(1, std::ios::cur);
+        c = stream.peek();
+        stream.seekg(1, std::ios::cur);
+        return c;
+    }
+
+    return std::nullopt;
+}
 
 constexpr std::optional<std::string_view> ConfLexer::tokenKindString(TokenKind token_kind) {
     using enum TokenKind;
@@ -274,6 +290,12 @@ std::optional<detail::Token> ConfLexer::eatShellExpression(std::ifstream& stream
     auto const increment_stream = detail::makeStreamIncrementor(stream);
 
     while (!ConfLexer::peekTokenKind(stream, terminator_kind).and_then(increment_stream)) {
+        if (auto escaped_token = ConfLexer::peekEscapedCharacter(stream)) {
+            std::ranges::copy(std::string_view{&escaped_token.value(), 1}, token_buffer.begin() + cursor);
+            cursor += sizeof(char);
+            continue;
+        }
+
         stream.read(&token_buffer[cursor++], 1);
     }
 
@@ -321,7 +343,14 @@ std::optional<detail::Token> ConfLexer::eatLiteral(std::ifstream& stream) {
             auto const& [_, terminator_kind] = delimiters.value();
             auto const increment_stream = detail::makeStreamIncrementor(stream);
 
+            bool escape_next = false;
             while (!ConfLexer::peekTokenKind(stream, terminator_kind).and_then(increment_stream)) {
+                if (auto escaped_token = ConfLexer::peekEscapedCharacter(stream)) {
+                    std::ranges::copy(std::string_view{&escaped_token.value(), 1}, token_buffer.begin() + cursor);
+                    cursor += sizeof(char);
+                    continue;
+                }
+
                 stream.read(&token_buffer[cursor++], 1);
             }
         } break;
