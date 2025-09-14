@@ -83,10 +83,6 @@ detail::ExpectedType ConfLexer::lexAst(std::ifstream& input_file) {
         }
     }
 
-    for (auto const& token : token_list) {
-        INFO("{}: |{}|", token.kind, token.data);
-    }
-
     return token_list;
 }
 
