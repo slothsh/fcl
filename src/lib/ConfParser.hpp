@@ -57,7 +57,6 @@ public:
     std::optional<NodePtr> takeNamedBlock(TokenType const& token);
     std::optional<NodePtr> takeKeywordBinOp(TokenType const& token);
 
-
 private:
     size_t m_cursor;
     TokenListType const& m_token_list;

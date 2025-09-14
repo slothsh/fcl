@@ -170,7 +170,6 @@ std::optional<detail::NodePtr> ConfParser::takeKeywordBinOp(detail::TokenType co
                 .keyword = token,
                 .expression = expression_token.front(),
                 .parent = nullptr,
-                .nodes = {},
             }
         }
     );
