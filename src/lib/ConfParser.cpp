@@ -71,9 +71,6 @@ std::expected<detail::NodePtr, detail::Error> ConfParser::parse() {
 
     switch (head.front().kind) {
         case IDENTIFIER: {
-            auto const tail = m_token_list
-                | std::views::drop(m_cursor);
-
             if (auto named_block = this->takeNamedBlock(head.front())) {
                 return std::move(named_block.value());
             }
@@ -82,13 +79,14 @@ std::expected<detail::NodePtr, detail::Error> ConfParser::parse() {
                 return std::move(named_declaration.value());
             }
 
+            if (auto shell_expression = this->takeShellExpression(head.front())) {
+                return std::move(shell_expression.value());
+            }
+
             m_cursor = reset;
         } break;
 
         case KEYWORD_INCLUDE: {
-            auto const tail = m_token_list
-                | std::views::drop(m_cursor);
-
             if (auto keyword_bin_op = this->takeKeywordBinOp(head.front())) {
                 return std::move(keyword_bin_op.value());
             }
@@ -220,6 +218,41 @@ std::optional<detail::NodePtr> ConfParser::takeNamedDeclaration(TokenType const&
                 .kind = NAMED_DECLARATION,
                 .name = token,
                 .expression = expression_token.front(),
+            }
+        }
+    );
+}
+
+std::optional<detail::NodePtr> ConfParser::takeShellExpression(detail::TokenType const& token) {
+    using enum NodeKind;
+    using enum TokenKindType;
+
+    size_t const reset = m_cursor;
+
+    auto const bin_op_token = m_token_list
+        | std::views::drop(m_cursor++)
+        | std::views::take(1);
+
+    if (!detail::rangeIsTokenKind(bin_op_token, EQUALS)) {
+        m_cursor = reset;
+        return std::nullopt;
+    }
+
+    auto const expression_token = m_token_list
+        | std::views::drop(m_cursor++)
+        | std::views::take(1);
+
+    if (!detail::rangeIsTokenKind(expression_token, SHELL_EXPRESSION)) {
+        m_cursor = reset;
+        return std::nullopt;
+    }
+
+    return std::make_unique<Node>(
+        Node {
+            NamedShellDeclaration {
+                .kind = NAMED_SHELL_DECLARATION,
+                .name = token,
+                .command = expression_token.front(),
             }
         }
     );

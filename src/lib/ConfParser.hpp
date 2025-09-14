@@ -15,13 +15,16 @@ public:
     struct NamedBlock;
     struct KeywordBinOp;
     struct NamedDeclaration;
+    struct NamedShellDeclaration;
 
     using Node = std::variant<
         RootBlock,
         NamedBlock,
         KeywordBinOp,
-        NamedDeclaration
+        NamedDeclaration,
+        NamedShellDeclaration
     >;
+
     using NodePtr = std::unique_ptr<Node>;
 
     enum class NodeKind {
@@ -29,6 +32,7 @@ public:
         NAMED_BLOCK,
         KEYWORD_BIN_OP,
         NAMED_DECLARATION,
+        NAMED_SHELL_DECLARATION,
     };
 
     struct RootBlock {
@@ -55,6 +59,12 @@ public:
         TokenType name;
         TokenType expression;
     };
+
+    struct NamedShellDeclaration {
+        NodeKind kind;
+        TokenType name;
+        TokenType command;
+    };
     
     enum class Error {
         TODO,
@@ -76,6 +86,7 @@ public:
     std::optional<NodePtr> takeNamedBlock(TokenType const& token);
     std::optional<NodePtr> takeKeywordBinOp(TokenType const& token);
     std::optional<NodePtr> takeNamedDeclaration(TokenType const& token);
+    std::optional<NodePtr> takeShellExpression(TokenType const& token);
 
 private:
     size_t m_cursor;
@@ -91,9 +102,10 @@ struct std::formatter<ConfParser::NodeKind> : std::formatter<std::string_view> {
     static constexpr std::string_view to_string(ConfParser::NodeKind kind) {
         switch (kind) {
             case ROOT_BLOCK:              return "ROOT_BLOCK";
-            case NAMED_BLOCK:       return "NAMED_BLOCK";
-            case KEYWORD_BIN_OP:    return "KEYWORD_BIN_OP";
-            case NAMED_DECLARATION: return "NAMED_DECLARATION";
+            case NAMED_BLOCK:             return "NAMED_BLOCK";
+            case KEYWORD_BIN_OP:          return "KEYWORD_BIN_OP";
+            case NAMED_DECLARATION:       return "NAMED_DECLARATION";
+            case NAMED_SHELL_DECLARATION: return "NAMED_SHELL_DECLARATION";
         }
     }
 
