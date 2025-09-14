@@ -16,6 +16,14 @@ namespace detail {
     using Context = typename ConfLexer::Context;
     using TokenKind = typename ConfLexer::TokenKind;
     using Token = typename ConfLexer::Token;
+
+    template<typename S>
+    constexpr auto makeStreamIncrementor(S& stream) {
+        return [&stream](std::string_view str) {
+            stream.seekg(str.size(), std::ios::cur);
+            return std::make_optional(str);
+        };
+    }
 }
 
 #define PUSH_TOKEN(token_list, token, context)                  \
@@ -257,17 +265,13 @@ std::optional<detail::Token> ConfLexer::eatShellExpression(std::ifstream& stream
     std::array<char, 1024> token_buffer{};
     size_t reset = stream.tellg();
 
-    auto const increment_stream = [&stream](std::string_view terminator_kind_string) {
-        stream.seekg(terminator_kind_string.size(), std::ios::cur);
-        return std::make_optional(terminator_kind_string);
-    };
-
     auto const delimiters = ConfLexer::peekDelimitersFor(stream, ConfLexer::SHELL_EXPRESSION_OPEN_PUNCTUATORS);
     if (!delimiters) {
         return std::nullopt;
     }
 
     auto const& [_, terminator_kind] = delimiters.value();
+    auto const increment_stream = detail::makeStreamIncrementor(stream);
 
     while (!ConfLexer::peekTokenKind(stream, terminator_kind).and_then(increment_stream)) {
         stream.read(&token_buffer[cursor++], 1);
@@ -314,12 +318,8 @@ std::optional<detail::Token> ConfLexer::eatLiteral(std::ifstream& stream) {
                 return std::nullopt;
             }
 
-            auto const increment_stream = [&stream](std::string_view terminator_kind_string) {
-                stream.seekg(terminator_kind_string.size(), std::ios::cur);
-                return std::make_optional(terminator_kind_string);
-            };
-
             auto const& [_, terminator_kind] = delimiters.value();
+            auto const increment_stream = detail::makeStreamIncrementor(stream);
 
             while (!ConfLexer::peekTokenKind(stream, terminator_kind).and_then(increment_stream)) {
                 stream.read(&token_buffer[cursor++], 1);
