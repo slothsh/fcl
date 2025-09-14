@@ -45,10 +45,10 @@ detail::ExpectedType ConfLexer::lexFile(std::string_view input_file_path) {
 
     input_file >> std::noskipws;
 
-    return ConfLexer::lexAst(input_file);
+    return ConfLexer::lexInputFileStream(input_file);
 }
 
-detail::ExpectedType ConfLexer::lexAst(std::ifstream& input_file) {
+detail::ExpectedType ConfLexer::lexInputFileStream(std::ifstream& input_file) {
     using enum detail::Context;
     using enum detail::TokenKind;
 
@@ -90,7 +90,6 @@ std::optional<detail::Error> ConfLexer::pushToken(detail::Token&& token, detail:
     token_list.push_back(std::move(token));
     return std::nullopt;
 }
-
 
 constexpr std::optional<detail::TokenKind> ConfLexer::terminatorFor(detail::TokenKind token_kind) {
     using enum TokenKind;

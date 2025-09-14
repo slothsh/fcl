@@ -9,6 +9,7 @@ add_library(
         CommandLineArgumentParser.cpp
         UserConfiguration.cpp
         ConfLexer.cpp
+        ConfParser.cpp
 )
 
 target_precompile_headers(
@@ -25,6 +26,7 @@ target_precompile_headers(
         ThreadPool.hpp
         UserConfiguration.hpp
         ConfLexer.hpp
+        ConfParser.hpp
 )
 
 add_subdirectory(include/)
