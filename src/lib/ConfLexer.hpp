@@ -45,7 +45,7 @@ public:
     static constexpr std::string_view STRING_OPEN_DOUBLE_QUOTE   = "\"";
     static constexpr std::string_view STRING_CLOSE_DOUBLE_QUOTE  = "\"";
     static constexpr std::string_view STRING_TAB_FEED            = "\t";
-    static constexpr std::string_view STRING_LINE_FEED           = "\n";
+    static constexpr std::string_view STRING_LINE_FEED           = "\r\n";
     static constexpr std::string_view STRING_VERTICAL_FEED       = "\v";
     static constexpr std::string_view STRING_SPACE               = " ";
     static constexpr std::string_view STRING_COMMENT_SINGLE_LINE = "#";

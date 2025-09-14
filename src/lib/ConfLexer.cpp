@@ -358,6 +358,17 @@ std::optional<detail::Token> ConfLexer::eatLiteral(std::ifstream& stream) {
         case PATH_LITERAL: {
             stream.read(&token_buffer[cursor++], 1);
             while (!ConfLexer::isSpace(stream.peek())) {
+                if (auto escaped_token = ConfLexer::peekEscapedCharacter(stream)) {
+                    std::ranges::copy(std::string_view{&escaped_token.value(), 1}, token_buffer.begin() + cursor);
+                    cursor += sizeof(char);
+                    continue;
+                }
+
+                if (ConfLexer::peekTokenKind(stream, LINE_FEED)) {
+                    stream.seekg(reset);
+                    return std::nullopt;
+                }
+
                 stream.read(&token_buffer[cursor++], 1);
             }
         } break;
