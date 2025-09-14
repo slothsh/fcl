@@ -81,13 +81,13 @@ public:
         BUFFER_OUT_OF_MEMORY,
     };
 
-    using AstType = std::vector<Token>;
-    using ExpectedType = std::expected<AstType, Error>;
+    using TokenListType = std::vector<Token>;
+    using ExpectedType = std::expected<TokenListType, Error>;
 
     static ExpectedType lexFile(std::string_view input_file_path);
     static ExpectedType lexAst(std::ifstream& input_file);
 
-    static std::optional<Error> pushToken(Token&& token, AstType& ast);
+    static std::optional<Error> pushToken(Token&& token, TokenListType& ast);
     static std::optional<std::string_view> peekTokenKind(std::ifstream& stream, TokenKind token_kind);
 
     static constexpr std::optional<TokenKind> terminatorFor(TokenKind token_kind);

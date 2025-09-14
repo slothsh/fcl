@@ -12,16 +12,16 @@
 namespace detail {
     using Error = typename ConfLexer::Error;
     using ExpectedType = typename ConfLexer::ExpectedType;
-    using AstType = typename ConfLexer::AstType;
+    using TokenListType = typename ConfLexer::TokenListType;
     using Context = typename ConfLexer::Context;
     using TokenKind = typename ConfLexer::TokenKind;
     using Token = typename ConfLexer::Token;
 }
 
-#define PUSH_TOKEN(ast, token, context)                  \
-[&ast, &token]() {                                       \
-    ConfLexer::pushToken(std::move(token.value()), ast); \
-    return context;                                      \
+#define PUSH_TOKEN(token_list, token, context)                  \
+[&token_list, &token]() {                                       \
+    ConfLexer::pushToken(std::move(token.value()), token_list); \
+    return context;                                             \
 }()
 
 detail::ExpectedType ConfLexer::lexFile(std::string_view input_file_path) {
@@ -44,23 +44,23 @@ detail::ExpectedType ConfLexer::lexAst(std::ifstream& input_file) {
     using enum detail::TokenKind;
 
     auto context = NONE;
-    detail::AstType ast{};
+    detail::TokenListType token_list{};
 
     while (!input_file.eof()) {
         if (auto token = ConfLexer::eatSpaces(input_file)) {
             context = NONE;
         } else if (auto token = ConfLexer::eatPunctuator(input_file)) {
-            context = PUSH_TOKEN(ast, token, NONE);
+            context = PUSH_TOKEN(token_list, token, NONE);
         } else if (auto token = ConfLexer::eatKeyword(input_file)) {
-            context = PUSH_TOKEN(ast, token, NONE);
+            context = PUSH_TOKEN(token_list, token, NONE);
         } else if (auto token = ConfLexer::eatIdentifier(input_file)) {
-            context = PUSH_TOKEN(ast, token, NONE);
+            context = PUSH_TOKEN(token_list, token, NONE);
         } else if (auto token = ConfLexer::eatShellExpression(input_file)) {
-            context = PUSH_TOKEN(ast, token, NONE);
+            context = PUSH_TOKEN(token_list, token, NONE);
         } else if (auto token = ConfLexer::eatLiteral(input_file)) {
-            context = PUSH_TOKEN(ast, token, NONE);
+            context = PUSH_TOKEN(token_list, token, NONE);
         } else if (auto token = ConfLexer::eatComment(input_file)) {
-            context = PUSH_TOKEN(ast, token, NONE);
+            context = PUSH_TOKEN(token_list, token, NONE);
         } else {
             WARN("unknown token: {}", static_cast<char>(input_file.peek()));
             token = Token {
@@ -69,20 +69,20 @@ detail::ExpectedType ConfLexer::lexAst(std::ifstream& input_file) {
                 .position = static_cast<size_t>(input_file.tellg()),
                 .length = 1,
             };
-            context = PUSH_TOKEN(ast, token, NONE);
+            context = PUSH_TOKEN(token_list, token, NONE);
             input_file.seekg(1, std::ios::cur);
         }
     }
 
-    for (auto const& token : ast) {
+    for (auto const& token : token_list) {
         INFO("{}: |{}|", token.kind, token.data);
     }
 
-    return ast;
+    return token_list;
 }
 
-std::optional<detail::Error> ConfLexer::pushToken(detail::Token&& token, detail::AstType& ast) {
-    ast.push_back(std::move(token));
+std::optional<detail::Error> ConfLexer::pushToken(detail::Token&& token, detail::TokenListType& token_list) {
+    token_list.push_back(std::move(token));
     return std::nullopt;
 }
 
