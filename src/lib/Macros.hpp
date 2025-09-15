@@ -16,3 +16,4 @@
     std::println("{}:{} INFO "#message, __FILE__, __LINE__, __VA_ARGS__); \
 } while (false)
 
+#define NOOP_VISITOR [](auto&&) {}

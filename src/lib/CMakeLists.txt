@@ -10,6 +10,7 @@ add_library(
         UserConfiguration.cpp
         ConfLexer.cpp
         ConfParser.cpp
+        ConfInterpreter.cpp
 )
 
 target_precompile_headers(
@@ -27,6 +28,7 @@ target_precompile_headers(
         UserConfiguration.hpp
         ConfLexer.hpp
         ConfParser.hpp
+        ConfInterpreter.hpp
 )
 
 add_subdirectory(include/)

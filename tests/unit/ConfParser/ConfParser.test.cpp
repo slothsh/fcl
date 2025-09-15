@@ -39,12 +39,42 @@ void printAst(typename ConfParser::NodePtr const& node, int indent = 0) {
     std::visit(visitor, *node);
 }
 
+template<typename T>
+concept HasNodeKind = requires (T t) {
+    { t.kind };
+};
+
+void includeFiles(typename ConfParser::NodePtr const& ast) {
+    using enum ConfParser::NodeKind;
+
+    if (!ast) {
+        return;
+    }
+
+    auto const visitor = Visitors {
+        [&](ConfParser::KeywordBinOp const& keyword_bin_op) {
+        },
+        [&]<HasNodeKind T>(T const& node) {
+            constexpr bool has_children = std::same_as<T, typename ConfParser::RootBlock>
+                || std::same_as<T, typename ConfParser::NamedBlock>;
+
+            if constexpr (has_children) {
+                for (auto const& child : node.nodes) {
+                    includeFiles(child);
+                }
+            }
+        },
+    };
+
+    std::visit(visitor, *ast);
+}
+
 TEST_CASE("Parse Simple Configuration File", "[confparser]") {
     SECTION("Top-Level Block Can Be Parsed") {
         auto token_list = ConfLexer::lexFile("./data/Config.conf");
         auto ast = ConfParser::parse(token_list.value());
 
-        printAst(ast.value());
+        includeFiles(ast.value());
         
         REQUIRE(1 == 1);
     }
