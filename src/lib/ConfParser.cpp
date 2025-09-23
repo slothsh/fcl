@@ -185,20 +185,20 @@ std::optional<detail::NodePtr> ConfParser::takeKeywordBinOp(detail::TokenType co
 
     size_t const reset = m_cursor;
 
-    auto const bin_op_token = m_token_list
-        | std::views::drop(m_cursor++)
-        | std::views::take(1);
-
-    if (!detail::rangeIsTokenKind(bin_op_token, EQUALS)) {
-        m_cursor = reset;
-        return std::nullopt;
-    }
-
     auto const expression_token = m_token_list
         | std::views::drop(m_cursor++)
         | std::views::take(1);
 
     if (!ConfParser::isExpressionToken(expression_token.front().kind)) {
+        m_cursor = reset;
+        return std::nullopt;
+    }
+
+    auto const terminator_token = m_token_list
+        | std::views::drop(m_cursor++)
+        | std::views::take(1);
+
+    if (!detail::rangeIsTokenKind(terminator_token, SEMI_COLON)) {
         m_cursor = reset;
         return std::nullopt;
     }
@@ -244,6 +244,15 @@ std::optional<detail::NodePtr> ConfParser::takeNamedDeclaration(TokenType const&
         return std::nullopt;
     }
 
+    auto const terminator_token = m_token_list
+        | std::views::drop(m_cursor++)
+        | std::views::take(1);
+
+    if (!detail::rangeIsTokenKind(terminator_token, SEMI_COLON)) {
+        m_cursor = reset;
+        return std::nullopt;
+    }
+
     auto root = std::make_unique<Node>(
         Node {
             NamedDeclaration {
@@ -281,6 +290,15 @@ std::optional<detail::NodePtr> ConfParser::takeShellExpression(detail::TokenType
         | std::views::take(1);
 
     if (!detail::rangeIsTokenKind(expression_token, SHELL_EXPRESSION)) {
+        m_cursor = reset;
+        return std::nullopt;
+    }
+
+    auto const terminator_token = m_token_list
+        | std::views::drop(m_cursor++)
+        | std::views::take(1);
+
+    if (!detail::rangeIsTokenKind(terminator_token, SEMI_COLON)) {
         m_cursor = reset;
         return std::nullopt;
     }
