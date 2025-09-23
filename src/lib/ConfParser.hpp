@@ -15,6 +15,7 @@ public:
     struct NamedBlock;
     struct KeywordBinOp;
     struct VariableAssignmentExpression;
+    struct ConstantAssignmentExpression;
     struct ShellAssignmentExpression;
 
     using Node = std::variant<
@@ -22,6 +23,7 @@ public:
         NamedBlock,
         KeywordBinOp,
         VariableAssignmentExpression,
+        ConstantAssignmentExpression,
         ShellAssignmentExpression
     >;
 
@@ -32,6 +34,7 @@ public:
         NAMED_BLOCK,
         KEYWORD_BIN_OP,
         VARIABLE_ASSIGNMENT_EXPRESSION,
+        CONSTANT_ASSIGNMENT_EXPRESSION,
         SHELL_ASSIGNMENT_EXPRESSION,
     };
 
@@ -58,6 +61,14 @@ public:
     };
 
     struct VariableAssignmentExpression {
+        NodeKind kind;
+        TokenType name;
+        TokenType expression;
+        Node* me;
+        Node* parent;
+    };
+
+    struct ConstantAssignmentExpression {
         NodeKind kind;
         TokenType name;
         TokenType expression;
@@ -93,6 +104,7 @@ public:
     std::optional<NodePtr> takeNamedBlock(TokenType const& token, NodePtr& parent);
     std::optional<NodePtr> takeKeywordBinOp(TokenType const& token, NodePtr& parent);
     std::optional<NodePtr> takeVariableAssignmentExpression(TokenType const& token, NodePtr& parent);
+    std::optional<NodePtr> takeConstantAssignmentExpression(TokenType const& token, NodePtr& parent);
     std::optional<NodePtr> takeShellExpression(TokenType const& token, NodePtr& parent);
 
 private:
@@ -111,7 +123,8 @@ struct std::formatter<ConfParser::NodeKind> : std::formatter<std::string_view> {
             case ROOT_BLOCK:                     return "ROOT_BLOCK";
             case NAMED_BLOCK:                    return "NAMED_BLOCK";
             case KEYWORD_BIN_OP:                 return "KEYWORD_BIN_OP";
-            case VARIABLE_ASSIGNMENT_EXPRESSION: return "ASSIGNMENT_EXPRESSION";
+            case VARIABLE_ASSIGNMENT_EXPRESSION: return "VARIABLE_ASSIGNMENT_EXPRESSION";
+            case CONSTANT_ASSIGNMENT_EXPRESSION: return "CONSTANT_ASSIGNMENT_EXPRESSION";
             case SHELL_ASSIGNMENT_EXPRESSION:    return "SHELL_ASSIGNMENT_EXPRESSION";
         }
     }

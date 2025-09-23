@@ -20,6 +20,16 @@ namespace detail {
             }
         ) != range.end();
     }
+
+    template<std::ranges::range R, size_t N>
+    static bool rangeTokenIsAnyOf(R&& range, std::array<TokenKindType, N> const& token_kinds) {
+        return std::ranges::find_if(
+            range,
+            [&token_kinds](TokenType const& t) {
+                return std::ranges::contains(token_kinds, t.kind);
+            }
+        ) != range.end();
+    }
 }
 
 std::optional<detail::NodePtr> ConfParser::parseTokenList(detail::TokenListType const& token_list) {
@@ -88,6 +98,10 @@ std::expected<detail::NodePtr, detail::Error> ConfParser::parse(detail::NodePtr&
 
             if (auto variable_assignment_expression = this->takeVariableAssignmentExpression(head.front(), parent)) {
                 return std::move(variable_assignment_expression.value());
+            }
+
+            if (auto constant_assignment_expression = this->takeConstantAssignmentExpression(head.front(), parent)) {
+                return std::move(constant_assignment_expression.value());
             }
 
             if (auto shell_expression = this->takeShellExpression(head.front(), parent)) {
@@ -270,6 +284,56 @@ std::optional<detail::NodePtr> ConfParser::takeVariableAssignmentExpression(Toke
     return root;
 }
 
+std::optional<detail::NodePtr> ConfParser::takeConstantAssignmentExpression(TokenType const& token, detail::NodePtr& parent) {
+    using enum NodeKind;
+    using enum TokenKindType;
+
+    size_t const reset = m_cursor;
+
+    auto const operator_token = m_token_list
+        | std::views::drop(m_cursor++)
+        | std::views::take(1);
+
+    if (!detail::rangeIsTokenKind(operator_token, WALRUS)) {
+        m_cursor = reset;
+        return std::nullopt;
+    }
+
+    auto const expression_token = m_token_list
+        | std::views::drop(m_cursor++)
+        | std::views::take(1);
+
+    if (!ConfParser::isExpressionToken(expression_token.front().kind)) {
+        m_cursor = reset;
+        return std::nullopt;
+    }
+
+    auto const terminator_token = m_token_list
+        | std::views::drop(m_cursor++)
+        | std::views::take(1);
+
+    if (!detail::rangeIsTokenKind(terminator_token, SEMI_COLON)) {
+        m_cursor = reset;
+        return std::nullopt;
+    }
+
+    auto root = std::make_unique<Node>(
+        Node {
+            ConstantAssignmentExpression {
+                .kind = CONSTANT_ASSIGNMENT_EXPRESSION,
+                .name = token,
+                .expression = expression_token.front(),
+                .me = nullptr,
+                .parent = parent.get(),
+            }
+        }
+    );
+
+    std::get<ConstantAssignmentExpression>(*root).me = root.get();
+
+    return root;
+}
+
 std::optional<detail::NodePtr> ConfParser::takeShellExpression(detail::TokenType const& token, detail::NodePtr& parent) {
     using enum NodeKind;
     using enum TokenKindType;
@@ -280,7 +344,7 @@ std::optional<detail::NodePtr> ConfParser::takeShellExpression(detail::TokenType
         | std::views::drop(m_cursor++)
         | std::views::take(1);
 
-    if (!detail::rangeIsTokenKind(operator_token, EQUALS)) {
+    if (!detail::rangeTokenIsAnyOf(operator_token, std::array{ EQUALS, WALRUS })) {
         m_cursor = reset;
         return std::nullopt;
     }

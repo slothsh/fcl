@@ -32,6 +32,11 @@ void printAst(ConfLoader::AstType const& node, int indent = 0) {
             std::println("{:>{}}{}", " ", indent + 4, node.expression.data);
             std::println("{:>{}}parent: {}", " ", indent + 4, (void*)node.parent);
         },
+        [&](ConfParser::ConstantAssignmentExpression const& node) {
+            std::println("{:>{}}{}", " ", indent, node.kind);
+            std::println("{:>{}}{}", " ", indent + 4, node.name.data);
+            std::println("{:>{}}{}", " ", indent + 4, node.expression.data);
+        },
         [&](ConfParser::ShellAssignmentExpression const& node) {
             std::println("{:>{}}{}", " ", indent, node.kind);
             std::println("{:>{}}{}", " ", indent + 4, node.name.data);
