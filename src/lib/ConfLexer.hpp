@@ -14,6 +14,7 @@ public:
     enum class TokenKind {
         UNKNOWN,
         EQUALS,
+        WALRUS,
         SEMI_COLON,
         IDENTIFIER,
         NUMBER_LITERAL,
@@ -43,6 +44,7 @@ public:
     // TODO: separate into open/close punctuators
     static constexpr std::array PUNCTUATORS {
         std::pair{ TokenKind::EQUALS, Conf::STRING_EQUALS },
+        std::pair{ TokenKind::WALRUS, Conf::STRING_WALRUS },
         std::pair{ TokenKind::SEMI_COLON, Conf::STRING_SEMI_COLON },
         std::pair{ TokenKind::OPEN_BRACE, Conf::STRING_OPEN_BRACE },
         std::pair{ TokenKind::CLOSE_BRACE, Conf::STRING_CLOSE_BRACE },
@@ -164,6 +166,7 @@ struct std::formatter<ConfLexer::TokenKind> : std::formatter<std::string_view> {
             case UNKNOWN:            return "UNKNOWN";
             case IDENTIFIER:         return "IDENTIFIER";
             case EQUALS:             return "EQUALS";
+            case WALRUS:             return "WALRUS";
             case SEMI_COLON:         return "SEMI_COLON";
             case NUMBER_LITERAL:     return "NUMBER";
             case STRING_LITERAL:     return "STRING_LITERAL";

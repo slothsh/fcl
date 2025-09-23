@@ -4,6 +4,7 @@ namespace Conf {
 
 // Binary Operator Strings
 static constexpr std::string_view STRING_EQUALS              = "=";
+static constexpr std::string_view STRING_WALRUS              = ":=";
 
 // Symmetric Delimiter Strings
 static constexpr std::string_view STRING_OPEN_BRACE          = "{";
