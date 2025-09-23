@@ -14,6 +14,7 @@ public:
     enum class TokenKind {
         UNKNOWN,
         EQUALS,
+        SEMI_COLON,
         IDENTIFIER,
         NUMBER_LITERAL,
         STRING_LITERAL,
@@ -42,8 +43,13 @@ public:
     // TODO: separate into open/close punctuators
     static constexpr std::array PUNCTUATORS {
         std::pair{ TokenKind::EQUALS, Conf::STRING_EQUALS },
+        std::pair{ TokenKind::SEMI_COLON, Conf::STRING_SEMI_COLON },
         std::pair{ TokenKind::OPEN_BRACE, Conf::STRING_OPEN_BRACE },
         std::pair{ TokenKind::CLOSE_BRACE, Conf::STRING_CLOSE_BRACE },
+    };
+
+    static constexpr std::array STATEMENT_TERMINATORS {
+        std::pair{ TokenKind::SEMI_COLON, Conf::STRING_SEMI_COLON },
     };
 
     static constexpr std::array STRING_OPEN_PUNCTUATORS {
@@ -105,6 +111,7 @@ public:
     static constexpr bool isNumberLiteral(char c);
     static constexpr bool isCommentStart(char c);
     static constexpr bool isPathLiteralStart(char c);
+    static constexpr bool isStatementTerminator(char c);
 
     static std::optional<Token> eatKeyword(std::ifstream& stream);
     static std::optional<Token> eatIdentifier(std::ifstream& stream);
@@ -157,6 +164,7 @@ struct std::formatter<ConfLexer::TokenKind> : std::formatter<std::string_view> {
             case UNKNOWN:            return "UNKNOWN";
             case IDENTIFIER:         return "IDENTIFIER";
             case EQUALS:             return "EQUALS";
+            case SEMI_COLON:         return "SEMI_COLON";
             case NUMBER_LITERAL:     return "NUMBER";
             case STRING_LITERAL:     return "STRING_LITERAL";
             case PATH_LITERAL:       return "PATH_LITERAL";

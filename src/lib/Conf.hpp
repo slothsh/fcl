@@ -21,6 +21,9 @@ static constexpr std::string_view STRING_LINE_FEED           = "\r\n";
 static constexpr std::string_view STRING_VERTICAL_FEED       = "\v";
 static constexpr std::string_view STRING_SPACE               = " ";
 
+// Single Character Strings
+static constexpr std::string_view STRING_SEMI_COLON          = ";";
+
 // Single Delimiter Strings
 static constexpr std::string_view STRING_COMMENT_SINGLE_LINE = "#";
 static constexpr std::string_view STRING_ESCAPE_SEQUENCE     = "\\";

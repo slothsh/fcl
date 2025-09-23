@@ -209,6 +209,15 @@ constexpr bool ConfLexer::isPathLiteralStart(char c) {
     return c == '.' || c == '/';
 }
 
+constexpr bool ConfLexer::isStatementTerminator(char c) {
+    return std::ranges::find_if(
+        ConfLexer::STATEMENT_TERMINATORS,
+        [c](std::pair<TokenKind, std::string_view> const& pair) {
+            return std::string_view{pair.second}.front() == c;
+        }
+    ) != ConfLexer::STATEMENT_TERMINATORS.end();
+}
+
 std::optional<detail::Token> ConfLexer::eatKeyword(std::ifstream& stream) {
     using enum TokenKind;
 
@@ -353,7 +362,7 @@ std::optional<detail::Token> ConfLexer::eatLiteral(std::ifstream& stream) {
 
         case PATH_LITERAL: {
             stream.read(&token_buffer[cursor++], 1);
-            while (!ConfLexer::isSpace(stream.peek())) {
+            while (!ConfLexer::isSpace(stream.peek()) && !ConfLexer::isStatementTerminator(stream.peek())) {
                 if (auto escaped_token = ConfLexer::peekEscapedCharacter(stream)) {
                     std::ranges::copy(std::string_view{&escaped_token.value(), 1}, token_buffer.begin() + cursor);
                     cursor += sizeof(char);
@@ -371,7 +380,7 @@ std::optional<detail::Token> ConfLexer::eatLiteral(std::ifstream& stream) {
 
         case NUMBER_LITERAL: {
             stream.read(&token_buffer[cursor++], 1);
-            while (!ConfLexer::isSpace(stream.peek())) {
+            while (!ConfLexer::isSpace(stream.peek()) && !ConfLexer::isStatementTerminator(stream.peek())) {
                 stream.read(&token_buffer[cursor++], 1);
             }
         } break;
