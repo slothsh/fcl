@@ -23,7 +23,7 @@ void printAst(typename ConfParser::NodePtr const& node, int indent = 0) {
             std::println("{:>{}}{}", " ", indent + 4, node.keyword.data);
             std::println("{:>{}}{}", " ", indent + 4, node.expression.data);
         },
-        [&](ConfParser::AssignmentExpression const& node) {
+        [&](ConfParser::VariableAssignmentExpression const& node) {
             std::println("{:>{}}{}", " ", indent, node.kind);
             std::println("{:>{}}{}", " ", indent + 4, node.name.data);
             std::println("{:>{}}{}", " ", indent + 4, node.expression.data);

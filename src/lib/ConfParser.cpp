@@ -86,8 +86,8 @@ std::expected<detail::NodePtr, detail::Error> ConfParser::parse(detail::NodePtr&
                 return std::move(named_block.value());
             }
 
-            if (auto assignment_expression = this->takeAssignmentExpression(head.front(), parent)) {
-                return std::move(assignment_expression.value());
+            if (auto variable_assignment_expression = this->takeVariableAssignmentExpression(head.front(), parent)) {
+                return std::move(variable_assignment_expression.value());
             }
 
             if (auto shell_expression = this->takeShellExpression(head.front(), parent)) {
@@ -220,7 +220,7 @@ std::optional<detail::NodePtr> ConfParser::takeKeywordBinOp(detail::TokenType co
     return root;
 }
 
-std::optional<detail::NodePtr> ConfParser::takeAssignmentExpression(TokenType const& token, detail::NodePtr& parent) {
+std::optional<detail::NodePtr> ConfParser::takeVariableAssignmentExpression(TokenType const& token, detail::NodePtr& parent) {
     using enum NodeKind;
     using enum TokenKindType;
 
@@ -255,8 +255,8 @@ std::optional<detail::NodePtr> ConfParser::takeAssignmentExpression(TokenType co
 
     auto root = std::make_unique<Node>(
         Node {
-            AssignmentExpression {
-                .kind = ASSIGNMENT_EXPRESSION,
+            VariableAssignmentExpression {
+                .kind = VARIABLE_ASSIGNMENT_EXPRESSION,
                 .name = token,
                 .expression = expression_token.front(),
                 .me = nullptr,
@@ -265,7 +265,7 @@ std::optional<detail::NodePtr> ConfParser::takeAssignmentExpression(TokenType co
         }
     );
 
-    std::get<AssignmentExpression>(*root).me = root.get();
+    std::get<VariableAssignmentExpression>(*root).me = root.get();
 
     return root;
 }
