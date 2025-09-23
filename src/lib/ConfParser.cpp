@@ -305,8 +305,8 @@ std::optional<detail::NodePtr> ConfParser::takeShellExpression(detail::TokenType
 
     auto root = std::make_unique<Node>(
         Node {
-            NamedShellDeclaration {
-                .kind = NAMED_SHELL_DECLARATION,
+            ShellAssignmentExpression {
+                .kind = SHELL_ASSIGNMENT_EXPRESSION,
                 .name = token,
                 .command = expression_token.front(),
                 .me = nullptr,
@@ -315,7 +315,7 @@ std::optional<detail::NodePtr> ConfParser::takeShellExpression(detail::TokenType
         }
     );
 
-    std::get<NamedShellDeclaration>(*root).me = root.get();
+    std::get<ShellAssignmentExpression>(*root).me = root.get();
 
     return root;
 }
