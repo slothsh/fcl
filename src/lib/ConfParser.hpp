@@ -38,32 +38,39 @@ public:
     struct RootBlock {
         NodeKind kind;
         std::vector<NodePtr> nodes;
+        Node* me;
     };
 
     struct NamedBlock {
         NodeKind kind;
         TokenType name;
         std::vector<NodePtr> nodes;
-        // TODO: file location info
+        Node* me;
+        Node* parent;
     };
 
     struct KeywordBinOp {
         NodeKind kind;
         TokenType keyword;
         TokenType expression;
-        // TODO: file location info
+        Node* me;
+        Node* parent;
     };
 
     struct NamedDeclaration {
         NodeKind kind;
         TokenType name;
         TokenType expression;
+        Node* me;
+        Node* parent;
     };
 
     struct NamedShellDeclaration {
         NodeKind kind;
         TokenType name;
         TokenType command;
+        Node* me;
+        Node* parent;
     };
     
     enum class Error {
@@ -76,17 +83,17 @@ public:
         TokenKindType::PATH_LITERAL,
     };
 
-    static std::optional<NodePtr> parse(TokenListType const& token_list);
+    static std::optional<NodePtr> parseTokenList(TokenListType const& token_list);
     static bool isExpressionToken(TokenKindType token_kind);
 
     explicit ConfParser(TokenListType const& token_list);
 
-    std::expected<NodePtr, Error> parse();
+    std::expected<NodePtr, Error> parse(NodePtr& parent);
 
-    std::optional<NodePtr> takeNamedBlock(TokenType const& token);
-    std::optional<NodePtr> takeKeywordBinOp(TokenType const& token);
-    std::optional<NodePtr> takeNamedDeclaration(TokenType const& token);
-    std::optional<NodePtr> takeShellExpression(TokenType const& token);
+    std::optional<NodePtr> takeNamedBlock(TokenType const& token, NodePtr& parent);
+    std::optional<NodePtr> takeKeywordBinOp(TokenType const& token, NodePtr& parent);
+    std::optional<NodePtr> takeNamedDeclaration(TokenType const& token, NodePtr& parent);
+    std::optional<NodePtr> takeShellExpression(TokenType const& token, NodePtr& parent);
 
 private:
     size_t m_cursor;

@@ -2,9 +2,10 @@
 #include <print>
 #include <variant>
 
-void printAst(typename ConfParser::NodePtr const& node, int indent = 0) {
+void printAst(ConfLoader::AstType const& node, int indent = 0) {
     if (!node) return;
 
+    std::println("{:>{}}me: {}", " ", indent, (void*)node.get());
     auto const visitor = Visitors {
         [&](ConfParser::RootBlock const& node) {
             std::println("{:>{}}{}", " ", indent, node.kind);
@@ -14,6 +15,7 @@ void printAst(typename ConfParser::NodePtr const& node, int indent = 0) {
         },
         [&](ConfParser::NamedBlock const& node) {
             std::println("{:>{}}{}: {}", " ", indent, node.kind, node.name.data);
+            std::println("{:>{}}parent: {}", " ", indent + 4, (void*)node.parent);
             for (auto const& child : node.nodes) {
                 printAst(child, indent + 4);
             }
@@ -22,58 +24,31 @@ void printAst(typename ConfParser::NodePtr const& node, int indent = 0) {
             std::println("{:>{}}{}", " ", indent, node.kind);
             std::println("{:>{}}{}", " ", indent + 4, node.keyword.data);
             std::println("{:>{}}{}", " ", indent + 4, node.expression.data);
+            std::println("{:>{}}parent: {}", " ", indent + 4, (void*)node.parent);
         },
         [&](ConfParser::NamedDeclaration const& node) {
             std::println("{:>{}}{}", " ", indent, node.kind);
             std::println("{:>{}}{}", " ", indent + 4, node.name.data);
             std::println("{:>{}}{}", " ", indent + 4, node.expression.data);
+            std::println("{:>{}}parent: {}", " ", indent + 4, (void*)node.parent);
         },
         [&](ConfParser::NamedShellDeclaration const& node) {
             std::println("{:>{}}{}", " ", indent, node.kind);
             std::println("{:>{}}{}", " ", indent + 4, node.name.data);
             std::println("{:>{}}{}", " ", indent + 4, node.command.data);
+            std::println("{:>{}}parent: {}", " ", indent + 4, (void*)node.parent);
         }
     };
 
     std::visit(visitor, *node);
 }
 
-template<typename T>
-concept HasNodeKind = requires (T t) {
-    { t.kind };
-};
+TEST_CASE("Load Simple Configuration File", "[confloader]") {
+    SECTION("Conf file can be loaded") {
+        auto conf_loader = ConfLoader{"./data/Config.conf"};
+        auto const result = conf_loader.load();
 
-void includeFiles(typename ConfParser::NodePtr const& ast) {
-    using enum ConfParser::NodeKind;
-
-    if (!ast) {
-        return;
-    }
-
-    auto const visitor = Visitors {
-        [&](ConfParser::KeywordBinOp const& keyword_bin_op) {
-        },
-        [&]<HasNodeKind T>(T const& node) {
-            constexpr bool has_children = std::same_as<T, typename ConfParser::RootBlock>
-                || std::same_as<T, typename ConfParser::NamedBlock>;
-
-            if constexpr (has_children) {
-                for (auto const& child : node.nodes) {
-                    includeFiles(child);
-                }
-            }
-        },
-    };
-
-    std::visit(visitor, *ast);
-}
-
-TEST_CASE("Parse Simple Configuration File", "[confparser]") {
-    SECTION("Top-Level Block Can Be Parsed") {
-        auto token_list = ConfLexer::lexFile("./data/Config.conf");
-        auto ast = ConfParser::parseTokenList(token_list.value());
-
-        printAst(ast.value());
+        printAst(conf_loader.ast());
         
         REQUIRE(1 == 1);
     }

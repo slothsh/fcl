@@ -35,50 +35,33 @@ public:
         SHELL_EXPRESSION,
     };
 
-    static constexpr std::string_view STRING_EQUALS              = "=";
-    static constexpr std::string_view STRING_OPEN_BRACE          = "{";
-    static constexpr std::string_view STRING_CLOSE_BRACE         = "}";
-    static constexpr std::string_view STRING_OPEN_DOUBLE_BRACE   = "{{";
-    static constexpr std::string_view STRING_CLOSE_DOUBLE_BRACE  = "}}";
-    static constexpr std::string_view STRING_OPEN_QUOTE          = "'";
-    static constexpr std::string_view STRING_CLOSE_QUOTE         = "'";
-    static constexpr std::string_view STRING_OPEN_DOUBLE_QUOTE   = "\"";
-    static constexpr std::string_view STRING_CLOSE_DOUBLE_QUOTE  = "\"";
-    static constexpr std::string_view STRING_TAB_FEED            = "\t";
-    static constexpr std::string_view STRING_LINE_FEED           = "\r\n";
-    static constexpr std::string_view STRING_VERTICAL_FEED       = "\v";
-    static constexpr std::string_view STRING_SPACE               = " ";
-    static constexpr std::string_view STRING_COMMENT_SINGLE_LINE = "#";
-    static constexpr std::string_view STRING_KEYWORD_INCLUDE     = "include";
-    static constexpr std::string_view STRING_ESCAPE_SEQUENCE     = "\\";
-
     static constexpr std::array KEYWORDS {
-        std::pair{ TokenKind::KEYWORD_INCLUDE, STRING_KEYWORD_INCLUDE },
+        std::pair{ TokenKind::KEYWORD_INCLUDE, Conf::STRING_KEYWORD_INCLUDE },
     };
 
     // TODO: separate into open/close punctuators
     static constexpr std::array PUNCTUATORS {
-        std::pair{ TokenKind::EQUALS, STRING_EQUALS },
-        std::pair{ TokenKind::OPEN_BRACE, STRING_OPEN_BRACE },
-        std::pair{ TokenKind::CLOSE_BRACE, STRING_CLOSE_BRACE },
+        std::pair{ TokenKind::EQUALS, Conf::STRING_EQUALS },
+        std::pair{ TokenKind::OPEN_BRACE, Conf::STRING_OPEN_BRACE },
+        std::pair{ TokenKind::CLOSE_BRACE, Conf::STRING_CLOSE_BRACE },
     };
 
     static constexpr std::array STRING_OPEN_PUNCTUATORS {
-        std::pair{ TokenKind::OPEN_QUOTE, STRING_OPEN_QUOTE },
-        std::pair{ TokenKind::OPEN_DOUBLE_QUOTE, STRING_OPEN_DOUBLE_QUOTE },
+        std::pair{ TokenKind::OPEN_QUOTE, Conf::STRING_OPEN_QUOTE },
+        std::pair{ TokenKind::OPEN_DOUBLE_QUOTE, Conf::STRING_OPEN_DOUBLE_QUOTE },
     };
 
     static constexpr std::array STRING_CLOSE_PUNCTUATORS {
-        std::pair{ TokenKind::CLOSE_QUOTE, STRING_CLOSE_QUOTE },
-        std::pair{ TokenKind::CLOSE_DOUBLE_QUOTE, STRING_CLOSE_DOUBLE_QUOTE },
+        std::pair{ TokenKind::CLOSE_QUOTE, Conf::STRING_CLOSE_QUOTE },
+        std::pair{ TokenKind::CLOSE_DOUBLE_QUOTE, Conf::STRING_CLOSE_DOUBLE_QUOTE },
     };
 
     static constexpr std::array SHELL_EXPRESSION_OPEN_PUNCTUATORS {
-        std::pair{ TokenKind::OPEN_DOUBLE_BRACE, STRING_OPEN_DOUBLE_BRACE },
+        std::pair{ TokenKind::OPEN_DOUBLE_BRACE, Conf::STRING_OPEN_DOUBLE_BRACE },
     };
 
     static constexpr std::array SHELL_EXPRESSION_CLOSE_PUNCTUATORS {
-        std::pair{ TokenKind::CLOSE_DOUBLE_BRACE, STRING_CLOSE_DOUBLE_BRACE },
+        std::pair{ TokenKind::CLOSE_DOUBLE_BRACE, Conf::STRING_CLOSE_DOUBLE_BRACE },
     };
 
     struct Token {

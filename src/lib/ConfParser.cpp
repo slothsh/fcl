@@ -22,31 +22,42 @@ namespace detail {
     }
 }
 
-std::optional<detail::NodePtr> ConfParser::parse(detail::TokenListType const& token_list) {
+std::optional<detail::NodePtr> ConfParser::parseTokenList(detail::TokenListType const& token_list) {
     using enum Error;
     using enum NodeKind;
 
+    auto const push_child = [&](NodePtr& root, NodePtr& child) {
+        auto const push_child_visitor = Visitors {
+            [&](RootBlock& root) {
+                root.nodes.push_back(std::move(child));
+            },
+            [](auto&&){},
+        };
+
+        std::visit(push_child_visitor, *root);
+    };
+
     auto parser = ConfParser{token_list};
 
-    std::vector<NodePtr> nodes{};
+    auto root = std::make_unique<Node>(
+        Node {
+            RootBlock {
+                .kind = ROOT_BLOCK,
+                .nodes = {},
+            }
+        }
+    );
 
     while (true) {
-        auto node = parser.parse();
+        auto node = parser.parse(root);
         if (!node) {
             break;
         }
 
-        nodes.push_back(std::move(node.value()));
+        push_child(root, node.value());
     }
 
-    return std::make_unique<Node>(
-        Node {
-            RootBlock {
-                .kind = ROOT_BLOCK,
-                .nodes = std::move(nodes),
-            }
-        }
-    );
+    return root;
 }
 
 ConfParser::ConfParser(detail::TokenListType const& token_list)
@@ -55,7 +66,7 @@ ConfParser::ConfParser(detail::TokenListType const& token_list)
     , m_root{nullptr}
 {}
 
-std::expected<detail::NodePtr, detail::Error> ConfParser::parse() {
+std::expected<detail::NodePtr, detail::Error> ConfParser::parse(detail::NodePtr& parent) {
     using enum Error;
     using enum detail::TokenKindType;
 
@@ -71,15 +82,15 @@ std::expected<detail::NodePtr, detail::Error> ConfParser::parse() {
 
     switch (head.front().kind) {
         case IDENTIFIER: {
-            if (auto named_block = this->takeNamedBlock(head.front())) {
+            if (auto named_block = this->takeNamedBlock(head.front(), parent)) {
                 return std::move(named_block.value());
             }
 
-            if (auto named_declaration = this->takeNamedDeclaration(head.front())) {
+            if (auto named_declaration = this->takeNamedDeclaration(head.front(), parent)) {
                 return std::move(named_declaration.value());
             }
 
-            if (auto shell_expression = this->takeShellExpression(head.front())) {
+            if (auto shell_expression = this->takeShellExpression(head.front(), parent)) {
                 return std::move(shell_expression.value());
             }
 
@@ -87,7 +98,7 @@ std::expected<detail::NodePtr, detail::Error> ConfParser::parse() {
         } break;
 
         case KEYWORD_INCLUDE: {
-            if (auto keyword_bin_op = this->takeKeywordBinOp(head.front())) {
+            if (auto keyword_bin_op = this->takeKeywordBinOp(head.front(), parent)) {
                 return std::move(keyword_bin_op.value());
             }
 
@@ -107,7 +118,7 @@ bool ConfParser::isExpressionToken(TokenKindType token_kind) {
     return std::ranges::contains(ConfParser::EXPRESSION_TOKEN_KINDS, token_kind);
 }
 
-std::optional<detail::NodePtr> ConfParser::takeNamedBlock(detail::TokenType const& token) {
+std::optional<detail::NodePtr> ConfParser::takeNamedBlock(detail::TokenType const& token, detail::NodePtr& parent) {
     using enum NodeKind;
     using enum TokenKindType;
 
@@ -122,15 +133,38 @@ std::optional<detail::NodePtr> ConfParser::takeNamedBlock(detail::TokenType cons
         return std::nullopt;
     }
 
-    std::vector<NodePtr> nodes{};
+    auto const push_child = [&](NodePtr& root, NodePtr& child) {
+        auto const push_child_visitor = Visitors {
+            [&](NamedBlock& root) {
+                root.nodes.push_back(std::move(child));
+            },
+            [](auto&&){},
+        };
+
+        std::visit(push_child_visitor, *root);
+    };
+
+    auto root = std::make_unique<Node>(
+        Node {
+            NamedBlock {
+                .kind = NAMED_BLOCK,
+                .name = token,
+                .nodes = {},
+                .me = nullptr,
+                .parent = parent.get(),
+            }
+        }
+    );
+
+    std::get<NamedBlock>(*root).me = root.get();
 
     while (true) {
-        auto node = this->parse();
+        auto node = this->parse(root);
         if (!node) {
             break;
         }
 
-        nodes.push_back(std::move(node.value()));
+        push_child(root, node.value());
     }
 
     auto const block_end = m_token_list
@@ -142,18 +176,10 @@ std::optional<detail::NodePtr> ConfParser::takeNamedBlock(detail::TokenType cons
         return std::nullopt;
     }
 
-    return std::make_unique<Node>(
-        Node {
-            NamedBlock {
-                .kind = NAMED_BLOCK,
-                .name = token,
-                .nodes = std::move(nodes),
-            }
-        }
-    );
+    return root;
 }
 
-std::optional<detail::NodePtr> ConfParser::takeKeywordBinOp(detail::TokenType const& token) {
+std::optional<detail::NodePtr> ConfParser::takeKeywordBinOp(detail::TokenType const& token, detail::NodePtr& parent) {
     using enum NodeKind;
     using enum TokenKindType;
 
@@ -177,18 +203,24 @@ std::optional<detail::NodePtr> ConfParser::takeKeywordBinOp(detail::TokenType co
         return std::nullopt;
     }
 
-    return std::make_unique<Node>(
+    auto root = std::make_unique<Node>(
         Node {
             KeywordBinOp {
                 .kind = KEYWORD_BIN_OP,
                 .keyword = token,
                 .expression = expression_token.front(),
+                .me = nullptr,
+                .parent = parent.get(),
             }
         }
     );
+
+    std::get<KeywordBinOp>(*root).me = root.get();
+
+    return root;
 }
 
-std::optional<detail::NodePtr> ConfParser::takeNamedDeclaration(TokenType const& token) {
+std::optional<detail::NodePtr> ConfParser::takeNamedDeclaration(TokenType const& token, detail::NodePtr& parent) {
     using enum NodeKind;
     using enum TokenKindType;
 
@@ -212,18 +244,24 @@ std::optional<detail::NodePtr> ConfParser::takeNamedDeclaration(TokenType const&
         return std::nullopt;
     }
 
-    return std::make_unique<Node>(
+    auto root = std::make_unique<Node>(
         Node {
             NamedDeclaration {
                 .kind = NAMED_DECLARATION,
                 .name = token,
                 .expression = expression_token.front(),
+                .me = nullptr,
+                .parent = parent.get(),
             }
         }
     );
+
+    std::get<NamedDeclaration>(*root).me = root.get();
+
+    return root;
 }
 
-std::optional<detail::NodePtr> ConfParser::takeShellExpression(detail::TokenType const& token) {
+std::optional<detail::NodePtr> ConfParser::takeShellExpression(detail::TokenType const& token, detail::NodePtr& parent) {
     using enum NodeKind;
     using enum TokenKindType;
 
@@ -247,13 +285,19 @@ std::optional<detail::NodePtr> ConfParser::takeShellExpression(detail::TokenType
         return std::nullopt;
     }
 
-    return std::make_unique<Node>(
+    auto root = std::make_unique<Node>(
         Node {
             NamedShellDeclaration {
                 .kind = NAMED_SHELL_DECLARATION,
                 .name = token,
                 .command = expression_token.front(),
+                .me = nullptr,
+                .parent = parent.get(),
             }
         }
     );
+
+    std::get<NamedShellDeclaration>(*root).me = root.get();
+
+    return root;
 }

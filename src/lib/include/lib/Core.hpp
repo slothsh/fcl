@@ -10,6 +10,7 @@
 #include "../../ConnectionHandler.hpp"
 #include "../../Scheduler.hpp"
 #include "../../ThreadPool.hpp"
+#include "../../Conf.hpp"
 #include "../../ConfLexer.hpp"
 #include "../../ConfParser.hpp"
-#include "../../ConfInterpreter.hpp"
+#include "../../ConfLoader.hpp"
