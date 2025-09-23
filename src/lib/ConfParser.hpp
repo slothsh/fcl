@@ -14,14 +14,14 @@ public:
     struct RootBlock;
     struct NamedBlock;
     struct KeywordBinOp;
-    struct NamedDeclaration;
+    struct AssignmentExpression;
     struct NamedShellDeclaration;
 
     using Node = std::variant<
         RootBlock,
         NamedBlock,
         KeywordBinOp,
-        NamedDeclaration,
+        AssignmentExpression,
         NamedShellDeclaration
     >;
 
@@ -31,7 +31,7 @@ public:
         ROOT_BLOCK,
         NAMED_BLOCK,
         KEYWORD_BIN_OP,
-        NAMED_DECLARATION,
+        ASSIGNMENT_EXPRESSION,
         NAMED_SHELL_DECLARATION,
     };
 
@@ -57,7 +57,7 @@ public:
         Node* parent;
     };
 
-    struct NamedDeclaration {
+    struct AssignmentExpression {
         NodeKind kind;
         TokenType name;
         TokenType expression;
@@ -92,7 +92,7 @@ public:
 
     std::optional<NodePtr> takeNamedBlock(TokenType const& token, NodePtr& parent);
     std::optional<NodePtr> takeKeywordBinOp(TokenType const& token, NodePtr& parent);
-    std::optional<NodePtr> takeNamedDeclaration(TokenType const& token, NodePtr& parent);
+    std::optional<NodePtr> takeAssignmentExpression(TokenType const& token, NodePtr& parent);
     std::optional<NodePtr> takeShellExpression(TokenType const& token, NodePtr& parent);
 
 private:
@@ -111,7 +111,7 @@ struct std::formatter<ConfParser::NodeKind> : std::formatter<std::string_view> {
             case ROOT_BLOCK:              return "ROOT_BLOCK";
             case NAMED_BLOCK:             return "NAMED_BLOCK";
             case KEYWORD_BIN_OP:          return "KEYWORD_BIN_OP";
-            case NAMED_DECLARATION:       return "NAMED_DECLARATION";
+            case ASSIGNMENT_EXPRESSION:   return "ASSIGNMENT_EXPRESSION";
             case NAMED_SHELL_DECLARATION: return "NAMED_SHELL_DECLARATION";
         }
     }

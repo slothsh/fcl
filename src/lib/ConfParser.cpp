@@ -86,8 +86,8 @@ std::expected<detail::NodePtr, detail::Error> ConfParser::parse(detail::NodePtr&
                 return std::move(named_block.value());
             }
 
-            if (auto named_declaration = this->takeNamedDeclaration(head.front(), parent)) {
-                return std::move(named_declaration.value());
+            if (auto assignment_expression = this->takeAssignmentExpression(head.front(), parent)) {
+                return std::move(assignment_expression.value());
             }
 
             if (auto shell_expression = this->takeShellExpression(head.front(), parent)) {
@@ -220,17 +220,17 @@ std::optional<detail::NodePtr> ConfParser::takeKeywordBinOp(detail::TokenType co
     return root;
 }
 
-std::optional<detail::NodePtr> ConfParser::takeNamedDeclaration(TokenType const& token, detail::NodePtr& parent) {
+std::optional<detail::NodePtr> ConfParser::takeAssignmentExpression(TokenType const& token, detail::NodePtr& parent) {
     using enum NodeKind;
     using enum TokenKindType;
 
     size_t const reset = m_cursor;
 
-    auto const bin_op_token = m_token_list
+    auto const operator_token = m_token_list
         | std::views::drop(m_cursor++)
         | std::views::take(1);
 
-    if (!detail::rangeIsTokenKind(bin_op_token, EQUALS)) {
+    if (!detail::rangeIsTokenKind(operator_token, EQUALS)) {
         m_cursor = reset;
         return std::nullopt;
     }
@@ -255,8 +255,8 @@ std::optional<detail::NodePtr> ConfParser::takeNamedDeclaration(TokenType const&
 
     auto root = std::make_unique<Node>(
         Node {
-            NamedDeclaration {
-                .kind = NAMED_DECLARATION,
+            AssignmentExpression {
+                .kind = ASSIGNMENT_EXPRESSION,
                 .name = token,
                 .expression = expression_token.front(),
                 .me = nullptr,
@@ -265,7 +265,7 @@ std::optional<detail::NodePtr> ConfParser::takeNamedDeclaration(TokenType const&
         }
     );
 
-    std::get<NamedDeclaration>(*root).me = root.get();
+    std::get<AssignmentExpression>(*root).me = root.get();
 
     return root;
 }
@@ -276,11 +276,11 @@ std::optional<detail::NodePtr> ConfParser::takeShellExpression(detail::TokenType
 
     size_t const reset = m_cursor;
 
-    auto const bin_op_token = m_token_list
+    auto const operator_token = m_token_list
         | std::views::drop(m_cursor++)
         | std::views::take(1);
 
-    if (!detail::rangeIsTokenKind(bin_op_token, EQUALS)) {
+    if (!detail::rangeIsTokenKind(operator_token, EQUALS)) {
         m_cursor = reset;
         return std::nullopt;
     }
