@@ -16,7 +16,10 @@ public:
     struct KeywordBinOp;
     struct VariableAssignmentExpression;
     struct ConstantAssignmentExpression;
-    struct ShellAssignmentExpression;
+    struct StringExpression;
+    struct NumberExpression;
+    struct PathExpression;
+    struct ShellExpression;
 
     using Node = std::variant<
         RootBlock,
@@ -24,7 +27,10 @@ public:
         KeywordBinOp,
         VariableAssignmentExpression,
         ConstantAssignmentExpression,
-        ShellAssignmentExpression
+        StringExpression,
+        NumberExpression,
+        PathExpression,
+        ShellExpression
     >;
 
     using NodePtr = std::unique_ptr<Node>;
@@ -35,7 +41,10 @@ public:
         KEYWORD_BIN_OP,
         VARIABLE_ASSIGNMENT_EXPRESSION,
         CONSTANT_ASSIGNMENT_EXPRESSION,
-        SHELL_ASSIGNMENT_EXPRESSION,
+        STRING_EXPRESSION,
+        NUMBER_EXPRESSION,
+        PATH_EXPRESSION,
+        SHELL_EXPRESSION,
     };
 
     struct RootBlock {
@@ -63,7 +72,7 @@ public:
     struct VariableAssignmentExpression {
         NodeKind kind;
         TokenType name;
-        TokenType expression;
+        NodePtr expression;
         Node* me;
         Node* parent;
     };
@@ -71,19 +80,39 @@ public:
     struct ConstantAssignmentExpression {
         NodeKind kind;
         TokenType name;
-        TokenType expression;
+        NodePtr expression;
         Node* me;
         Node* parent;
     };
 
-    struct ShellAssignmentExpression {
+    struct StringExpression {
         NodeKind kind;
-        TokenType name;
+        TokenType token;
+        Node* me;
+        Node* parent;
+    };
+
+    struct NumberExpression {
+        NodeKind kind;
+        TokenType token;
+        Node* me;
+        Node* parent;
+    };
+
+    struct PathExpression {
+        NodeKind kind;
+        TokenType token;
+        Node* me;
+        Node* parent;
+    };
+
+    struct ShellExpression {
+        NodeKind kind;
         TokenType command;
         Node* me;
         Node* parent;
     };
-    
+
     enum class Error {
         TODO,
     };
@@ -92,6 +121,7 @@ public:
         TokenKindType::STRING_LITERAL,
         TokenKindType::NUMBER_LITERAL,
         TokenKindType::PATH_LITERAL,
+        TokenKindType::SHELL_LITERAL,
     };
 
     static std::optional<NodePtr> parseTokenList(TokenListType const& token_list);
@@ -105,6 +135,9 @@ public:
     std::optional<NodePtr> takeKeywordBinOp(TokenType const& token, NodePtr& parent);
     std::optional<NodePtr> takeVariableAssignmentExpression(TokenType const& token, NodePtr& parent);
     std::optional<NodePtr> takeConstantAssignmentExpression(TokenType const& token, NodePtr& parent);
+    std::optional<NodePtr> takeStringExpression(TokenType const& token, NodePtr& parent);
+    std::optional<NodePtr> takeNumberExpression(TokenType const& token, NodePtr& parent);
+    std::optional<NodePtr> takePathExpression(TokenType const& token, NodePtr& parent);
     std::optional<NodePtr> takeShellExpression(TokenType const& token, NodePtr& parent);
 
 private:
@@ -125,7 +158,10 @@ struct std::formatter<ConfParser::NodeKind> : std::formatter<std::string_view> {
             case KEYWORD_BIN_OP:                 return "KEYWORD_BIN_OP";
             case VARIABLE_ASSIGNMENT_EXPRESSION: return "VARIABLE_ASSIGNMENT_EXPRESSION";
             case CONSTANT_ASSIGNMENT_EXPRESSION: return "CONSTANT_ASSIGNMENT_EXPRESSION";
-            case SHELL_ASSIGNMENT_EXPRESSION:    return "SHELL_ASSIGNMENT_EXPRESSION";
+            case STRING_EXPRESSION:              return "STRING_EXPRESSION";
+            case NUMBER_EXPRESSION:              return "NUMBER_EXPRESSION";
+            case PATH_EXPRESSION:                return "PATH_EXPRESSION";
+            case SHELL_EXPRESSION:               return "SHELL_EXPRESSION";
         }
     }
 

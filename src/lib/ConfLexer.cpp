@@ -64,7 +64,7 @@ detail::ExpectedType ConfLexer::lexInputFileStream(std::ifstream& input_file) {
             context = PUSH_TOKEN(token_list, token, NONE);
         } else if (auto token = ConfLexer::eatIdentifier(input_file)) {
             context = PUSH_TOKEN(token_list, token, NONE);
-        } else if (auto token = ConfLexer::eatShellExpression(input_file)) {
+        } else if (auto token = ConfLexer::eatShellLiteral(input_file)) {
             context = PUSH_TOKEN(token_list, token, NONE);
         } else if (auto token = ConfLexer::eatLiteral(input_file)) {
             context = PUSH_TOKEN(token_list, token, NONE);
@@ -279,14 +279,14 @@ std::optional<detail::Token> ConfLexer::eatIdentifier(std::ifstream& stream) {
     };
 }
 
-std::optional<detail::Token> ConfLexer::eatShellExpression(std::ifstream& stream) {
+std::optional<detail::Token> ConfLexer::eatShellLiteral(std::ifstream& stream) {
     using enum TokenKind;
 
     size_t cursor = 0;
     std::array<char, 1024> token_buffer{};
     size_t reset = stream.tellg();
 
-    auto const delimiters = ConfLexer::peekDelimitersFor(stream, ConfLexer::SHELL_EXPRESSION_OPEN_PUNCTUATORS);
+    auto const delimiters = ConfLexer::peekDelimitersFor(stream, ConfLexer::SHELL_LITERAL_OPEN_PUNCTUATORS);
     if (!delimiters) {
         return std::nullopt;
     }
@@ -313,7 +313,7 @@ std::optional<detail::Token> ConfLexer::eatShellExpression(std::ifstream& stream
 
     return Token {
         .data = std::move(data),
-        .kind = SHELL_EXPRESSION,
+        .kind = SHELL_LITERAL,
         .position = static_cast<size_t>(stream.tellg()),
         .length = cursor,
     };
@@ -340,7 +340,7 @@ std::optional<detail::Token> ConfLexer::eatLiteral(std::ifstream& stream) {
 
     switch (token_kind) {
         case STRING_LITERAL: {
-            auto const delimiters = ConfLexer::peekDelimitersFor(stream, ConfLexer::STRING_OPEN_PUNCTUATORS);
+            auto const delimiters = ConfLexer::peekDelimitersFor(stream, ConfLexer::STRING_LITERAL_OPEN_PUNCTUATORS);
             if (!delimiters) {
                 return std::nullopt;
             }

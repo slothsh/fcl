@@ -2,6 +2,16 @@
 #include <print>
 #include <variant>
 
+template<typename T>
+concept HasNodeKind = requires (T t) {
+    { t.kind };
+};
+
+template<typename T>
+concept SimpleExpression = std::same_as<T, ConfParser::StringExpression>
+    || std::same_as<T, ConfParser::NumberExpression>
+    || std::same_as<T, ConfParser::PathExpression>;
+
 void printAst(typename ConfParser::NodePtr const& node, int indent = 0) {
     if (!node) return;
 
@@ -26,27 +36,25 @@ void printAst(typename ConfParser::NodePtr const& node, int indent = 0) {
         [&](ConfParser::VariableAssignmentExpression const& node) {
             std::println("{:>{}}{}", " ", indent, node.kind);
             std::println("{:>{}}{}", " ", indent + 4, node.name.data);
-            std::println("{:>{}}{}", " ", indent + 4, node.expression.data);
+            printAst(node.expression, indent + 4);
         },
         [&](ConfParser::ConstantAssignmentExpression const& node) {
             std::println("{:>{}}{}", " ", indent, node.kind);
             std::println("{:>{}}{}", " ", indent + 4, node.name.data);
-            std::println("{:>{}}{}", " ", indent + 4, node.expression.data);
+            printAst(node.expression, indent + 4);
         },
-        [&](ConfParser::ShellAssignmentExpression const& node) {
+        [&](ConfParser::ShellExpression const& node) {
             std::println("{:>{}}{}", " ", indent, node.kind);
-            std::println("{:>{}}{}", " ", indent + 4, node.name.data);
             std::println("{:>{}}{}", " ", indent + 4, node.command.data);
-        }
+        },
+        [&]<SimpleExpression T>(T const& node) {
+            std::println("{:>{}}{}", " ", indent, node.kind);
+            std::println("{:>{}}{}", " ", indent + 4, node.token.data);
+        },
     };
 
     std::visit(visitor, *node);
 }
-
-template<typename T>
-concept HasNodeKind = requires (T t) {
-    { t.kind };
-};
 
 void includeFiles(typename ConfParser::NodePtr const& ast) {
     using enum ConfParser::NodeKind;

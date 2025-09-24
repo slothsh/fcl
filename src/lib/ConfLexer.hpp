@@ -20,6 +20,7 @@ public:
         NUMBER_LITERAL,
         STRING_LITERAL,
         PATH_LITERAL,
+        SHELL_LITERAL,
         OPEN_BRACE,
         CLOSE_BRACE,
         OPEN_DOUBLE_BRACE,
@@ -34,7 +35,6 @@ public:
         SPACE,
         COMMENT,
         KEYWORD_INCLUDE,
-        SHELL_EXPRESSION,
     };
 
     static constexpr std::array KEYWORDS {
@@ -54,21 +54,21 @@ public:
         std::pair{ TokenKind::SEMI_COLON, Conf::STRING_SEMI_COLON },
     };
 
-    static constexpr std::array STRING_OPEN_PUNCTUATORS {
+    static constexpr std::array STRING_LITERAL_OPEN_PUNCTUATORS {
         std::pair{ TokenKind::OPEN_QUOTE, Conf::STRING_OPEN_QUOTE },
         std::pair{ TokenKind::OPEN_DOUBLE_QUOTE, Conf::STRING_OPEN_DOUBLE_QUOTE },
     };
 
-    static constexpr std::array STRING_CLOSE_PUNCTUATORS {
+    static constexpr std::array STRING_LITERAL_CLOSE_PUNCTUATORS {
         std::pair{ TokenKind::CLOSE_QUOTE, Conf::STRING_CLOSE_QUOTE },
         std::pair{ TokenKind::CLOSE_DOUBLE_QUOTE, Conf::STRING_CLOSE_DOUBLE_QUOTE },
     };
 
-    static constexpr std::array SHELL_EXPRESSION_OPEN_PUNCTUATORS {
+    static constexpr std::array SHELL_LITERAL_OPEN_PUNCTUATORS {
         std::pair{ TokenKind::OPEN_DOUBLE_BRACE, Conf::STRING_OPEN_DOUBLE_BRACE },
     };
 
-    static constexpr std::array SHELL_EXPRESSION_CLOSE_PUNCTUATORS {
+    static constexpr std::array SHELL_LITERAL_CLOSE_PUNCTUATORS {
         std::pair{ TokenKind::CLOSE_DOUBLE_BRACE, Conf::STRING_CLOSE_DOUBLE_BRACE },
     };
 
@@ -117,7 +117,7 @@ public:
 
     static std::optional<Token> eatKeyword(std::ifstream& stream);
     static std::optional<Token> eatIdentifier(std::ifstream& stream);
-    static std::optional<Token> eatShellExpression(std::ifstream& stream);
+    static std::optional<Token> eatShellLiteral(std::ifstream& stream);
     static std::optional<Token> eatLiteral(std::ifstream& stream);
     static std::optional<Token> eatSpaces(std::ifstream& stream);
     static std::optional<Token> eatPunctuator(std::ifstream& stream);
@@ -171,6 +171,7 @@ struct std::formatter<ConfLexer::TokenKind> : std::formatter<std::string_view> {
             case NUMBER_LITERAL:     return "NUMBER";
             case STRING_LITERAL:     return "STRING_LITERAL";
             case PATH_LITERAL:       return "PATH_LITERAL";
+            case SHELL_LITERAL:      return "SHELL_LITERAL";
             case COMMENT:            return "COMMENT";
             case OPEN_BRACE:         return "OPEN_BRACE";
             case CLOSE_BRACE:        return "CLOSE_BRACE";
@@ -185,7 +186,6 @@ struct std::formatter<ConfLexer::TokenKind> : std::formatter<std::string_view> {
             case VERTICAL_FEED:      return "VERTICAL_FEED";
             case SPACE:              return "SPACE";
             case KEYWORD_INCLUDE:    return "KEYWORD_INCLUDE";
-            case SHELL_EXPRESSION:   return "SHELL_EXPRESSION";
         }
     }
 

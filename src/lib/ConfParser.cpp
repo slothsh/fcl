@@ -104,6 +104,34 @@ std::expected<detail::NodePtr, detail::Error> ConfParser::parse(detail::NodePtr&
                 return std::move(constant_assignment_expression.value());
             }
 
+            m_cursor = reset;
+        } break;
+
+        case STRING_LITERAL: {
+            if (auto string_expression = this->takeStringExpression(head.front(), parent)) {
+                return std::move(string_expression.value());
+            }
+
+            m_cursor = reset;
+        } break;
+
+        case NUMBER_LITERAL: {
+            if (auto number_expression = this->takeNumberExpression(head.front(), parent)) {
+                return std::move(number_expression.value());
+            }
+
+            m_cursor = reset;
+        } break;
+
+        case PATH_LITERAL: {
+            if (auto path_expression = this->takePathExpression(head.front(), parent)) {
+                return std::move(path_expression.value());
+            }
+
+            m_cursor = reset;
+        } break;
+
+        case SHELL_LITERAL: {
             if (auto shell_expression = this->takeShellExpression(head.front(), parent)) {
                 return std::move(shell_expression.value());
             }
@@ -249,14 +277,27 @@ std::optional<detail::NodePtr> ConfParser::takeVariableAssignmentExpression(Toke
         return std::nullopt;
     }
 
-    auto const expression_token = m_token_list
-        | std::views::drop(m_cursor++)
-        | std::views::take(1);
+    auto root = std::make_unique<Node>(
+        Node {
+            VariableAssignmentExpression {
+                .kind = VARIABLE_ASSIGNMENT_EXPRESSION,
+                .name = token,
+                .expression = {},
+                .me = nullptr,
+                .parent = parent.get(),
+            }
+        }
+    );
 
-    if (!ConfParser::isExpressionToken(expression_token.front().kind)) {
+    std::get<VariableAssignmentExpression>(*root).me = root.get();
+
+    auto expression_node = this->parse(root);
+    if (!expression_node) {
         m_cursor = reset;
         return std::nullopt;
     }
+
+    std::get<VariableAssignmentExpression>(*root).expression = std::move(expression_node.value());
 
     auto const terminator_token = m_token_list
         | std::views::drop(m_cursor++)
@@ -266,20 +307,6 @@ std::optional<detail::NodePtr> ConfParser::takeVariableAssignmentExpression(Toke
         m_cursor = reset;
         return std::nullopt;
     }
-
-    auto root = std::make_unique<Node>(
-        Node {
-            VariableAssignmentExpression {
-                .kind = VARIABLE_ASSIGNMENT_EXPRESSION,
-                .name = token,
-                .expression = expression_token.front(),
-                .me = nullptr,
-                .parent = parent.get(),
-            }
-        }
-    );
-
-    std::get<VariableAssignmentExpression>(*root).me = root.get();
 
     return root;
 }
@@ -299,30 +326,12 @@ std::optional<detail::NodePtr> ConfParser::takeConstantAssignmentExpression(Toke
         return std::nullopt;
     }
 
-    auto const expression_token = m_token_list
-        | std::views::drop(m_cursor++)
-        | std::views::take(1);
-
-    if (!ConfParser::isExpressionToken(expression_token.front().kind)) {
-        m_cursor = reset;
-        return std::nullopt;
-    }
-
-    auto const terminator_token = m_token_list
-        | std::views::drop(m_cursor++)
-        | std::views::take(1);
-
-    if (!detail::rangeIsTokenKind(terminator_token, SEMI_COLON)) {
-        m_cursor = reset;
-        return std::nullopt;
-    }
-
     auto root = std::make_unique<Node>(
         Node {
             ConstantAssignmentExpression {
                 .kind = CONSTANT_ASSIGNMENT_EXPRESSION,
                 .name = token,
-                .expression = expression_token.front(),
+                .expression = {},
                 .me = nullptr,
                 .parent = parent.get(),
             }
@@ -331,32 +340,13 @@ std::optional<detail::NodePtr> ConfParser::takeConstantAssignmentExpression(Toke
 
     std::get<ConstantAssignmentExpression>(*root).me = root.get();
 
-    return root;
-}
-
-std::optional<detail::NodePtr> ConfParser::takeShellExpression(detail::TokenType const& token, detail::NodePtr& parent) {
-    using enum NodeKind;
-    using enum TokenKindType;
-
-    size_t const reset = m_cursor;
-
-    auto const operator_token = m_token_list
-        | std::views::drop(m_cursor++)
-        | std::views::take(1);
-
-    if (!detail::rangeTokenIsAnyOf(operator_token, std::array{ EQUALS, WALRUS })) {
+    auto expression_node = this->parse(root);
+    if (!expression_node) {
         m_cursor = reset;
         return std::nullopt;
     }
 
-    auto const expression_token = m_token_list
-        | std::views::drop(m_cursor++)
-        | std::views::take(1);
-
-    if (!detail::rangeIsTokenKind(expression_token, SHELL_EXPRESSION)) {
-        m_cursor = reset;
-        return std::nullopt;
-    }
+    std::get<ConstantAssignmentExpression>(*root).expression = std::move(expression_node.value());
 
     auto const terminator_token = m_token_list
         | std::views::drop(m_cursor++)
@@ -367,19 +357,101 @@ std::optional<detail::NodePtr> ConfParser::takeShellExpression(detail::TokenType
         return std::nullopt;
     }
 
+    return root;
+}
+
+std::optional<detail::NodePtr> ConfParser::takeStringExpression(detail::TokenType const& token, detail::NodePtr& parent) {
+    using enum NodeKind;
+    using enum TokenKindType;
+
+    if (token.kind != STRING_LITERAL) {
+        return std::nullopt;
+    }
+
     auto root = std::make_unique<Node>(
         Node {
-            ShellAssignmentExpression {
-                .kind = SHELL_ASSIGNMENT_EXPRESSION,
-                .name = token,
-                .command = expression_token.front(),
+            StringExpression {
+                .kind = STRING_EXPRESSION,
+                .token = token,
                 .me = nullptr,
                 .parent = parent.get(),
             }
         }
     );
 
-    std::get<ShellAssignmentExpression>(*root).me = root.get();
+    std::get<StringExpression>(*root).me = root.get();
+
+    return root;
+}
+
+std::optional<detail::NodePtr> ConfParser::takeNumberExpression(detail::TokenType const& token, detail::NodePtr& parent) {
+    using enum NodeKind;
+    using enum TokenKindType;
+
+    if (token.kind != NUMBER_LITERAL) {
+        return std::nullopt;
+    }
+
+    auto root = std::make_unique<Node>(
+        Node {
+            NumberExpression {
+                .kind = NUMBER_EXPRESSION,
+                .token = token,
+                .me = nullptr,
+                .parent = parent.get(),
+            }
+        }
+    );
+
+    std::get<NumberExpression>(*root).me = root.get();
+
+    return root;
+}
+
+std::optional<detail::NodePtr> ConfParser::takePathExpression(detail::TokenType const& token, detail::NodePtr& parent) {
+    using enum NodeKind;
+    using enum TokenKindType;
+
+    if (token.kind != PATH_LITERAL) {
+        return std::nullopt;
+    }
+
+    auto root = std::make_unique<Node>(
+        Node {
+            PathExpression {
+                .kind = PATH_EXPRESSION,
+                .token = token,
+                .me = nullptr,
+                .parent = parent.get(),
+            }
+        }
+    );
+
+    std::get<PathExpression>(*root).me = root.get();
+
+    return root;
+}
+
+std::optional<detail::NodePtr> ConfParser::takeShellExpression(detail::TokenType const& token, detail::NodePtr& parent) {
+    using enum NodeKind;
+    using enum TokenKindType;
+
+    if (token.kind != SHELL_LITERAL) {
+        return std::nullopt;
+    }
+
+    auto root = std::make_unique<Node>(
+        Node {
+            ShellExpression {
+                .kind = SHELL_EXPRESSION,
+                .command = token,
+                .me = nullptr,
+                .parent = parent.get(),
+            }
+        }
+    );
+
+    std::get<ShellExpression>(*root).me = root.get();
 
     return root;
 }

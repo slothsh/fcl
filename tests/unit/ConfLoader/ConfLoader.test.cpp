@@ -2,6 +2,11 @@
 #include <print>
 #include <variant>
 
+template<typename T>
+concept SimpleExpression = std::same_as<T, ConfParser::StringExpression>
+    || std::same_as<T, ConfParser::NumberExpression>
+    || std::same_as<T, ConfParser::PathExpression>;
+
 void printAst(ConfLoader::AstType const& node, int indent = 0) {
     if (!node) return;
 
@@ -29,20 +34,24 @@ void printAst(ConfLoader::AstType const& node, int indent = 0) {
         [&](ConfParser::VariableAssignmentExpression const& node) {
             std::println("{:>{}}{}", " ", indent, node.kind);
             std::println("{:>{}}{}", " ", indent + 4, node.name.data);
-            std::println("{:>{}}{}", " ", indent + 4, node.expression.data);
             std::println("{:>{}}parent: {}", " ", indent + 4, (void*)node.parent);
+            printAst(node.expression, indent + 4);
         },
         [&](ConfParser::ConstantAssignmentExpression const& node) {
             std::println("{:>{}}{}", " ", indent, node.kind);
             std::println("{:>{}}{}", " ", indent + 4, node.name.data);
-            std::println("{:>{}}{}", " ", indent + 4, node.expression.data);
+            std::println("{:>{}}parent: {}", " ", indent + 4, (void*)node.parent);
+            printAst(node.expression, indent + 4);
         },
-        [&](ConfParser::ShellAssignmentExpression const& node) {
+        [&](ConfParser::ShellExpression const& node) {
             std::println("{:>{}}{}", " ", indent, node.kind);
-            std::println("{:>{}}{}", " ", indent + 4, node.name.data);
             std::println("{:>{}}{}", " ", indent + 4, node.command.data);
             std::println("{:>{}}parent: {}", " ", indent + 4, (void*)node.parent);
-        }
+        },
+        [&]<SimpleExpression T>(T const& node) {
+            std::println("{:>{}}{}", " ", indent, node.kind);
+            std::println("{:>{}}{}", " ", indent + 4, node.token.data);
+        },
     };
 
     std::visit(visitor, *node);
