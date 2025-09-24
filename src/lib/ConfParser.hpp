@@ -13,7 +13,7 @@ public:
 
     struct RootBlock;
     struct NamedBlock;
-    struct KeywordBinOp;
+    struct KeywordStatement;
     struct VariableAssignmentExpression;
     struct ConstantAssignmentExpression;
     struct StringExpression;
@@ -24,7 +24,7 @@ public:
     using Node = std::variant<
         RootBlock,
         NamedBlock,
-        KeywordBinOp,
+        KeywordStatement,
         VariableAssignmentExpression,
         ConstantAssignmentExpression,
         StringExpression,
@@ -38,7 +38,7 @@ public:
     enum class NodeKind {
         ROOT_BLOCK,
         NAMED_BLOCK,
-        KEYWORD_BIN_OP,
+        KEYWORD_STATEMENT,
         VARIABLE_ASSIGNMENT_EXPRESSION,
         CONSTANT_ASSIGNMENT_EXPRESSION,
         STRING_EXPRESSION,
@@ -61,10 +61,10 @@ public:
         Node* parent;
     };
 
-    struct KeywordBinOp {
+    struct KeywordStatement {
         NodeKind kind;
         TokenType keyword;
-        TokenType expression;
+        std::vector<NodePtr> arguments;
         Node* me;
         Node* parent;
     };
@@ -132,7 +132,7 @@ public:
     std::expected<NodePtr, Error> parse(NodePtr& parent);
 
     std::optional<NodePtr> takeNamedBlock(TokenType const& token, NodePtr& parent);
-    std::optional<NodePtr> takeKeywordBinOp(TokenType const& token, NodePtr& parent);
+    std::optional<NodePtr> takeKeywordStatement(TokenType const& token, NodePtr& parent);
     std::optional<NodePtr> takeVariableAssignmentExpression(TokenType const& token, NodePtr& parent);
     std::optional<NodePtr> takeConstantAssignmentExpression(TokenType const& token, NodePtr& parent);
     std::optional<NodePtr> takeStringExpression(TokenType const& token, NodePtr& parent);
@@ -155,7 +155,7 @@ struct std::formatter<ConfParser::NodeKind> : std::formatter<std::string_view> {
         switch (kind) {
             case ROOT_BLOCK:                     return "ROOT_BLOCK";
             case NAMED_BLOCK:                    return "NAMED_BLOCK";
-            case KEYWORD_BIN_OP:                 return "KEYWORD_BIN_OP";
+            case KEYWORD_STATEMENT:              return "KEYWORD_STATEMENT";
             case VARIABLE_ASSIGNMENT_EXPRESSION: return "VARIABLE_ASSIGNMENT_EXPRESSION";
             case CONSTANT_ASSIGNMENT_EXPRESSION: return "CONSTANT_ASSIGNMENT_EXPRESSION";
             case STRING_EXPRESSION:              return "STRING_EXPRESSION";

@@ -16,6 +16,7 @@ public:
         EQUALS,
         WALRUS,
         SEMI_COLON,
+        COMMA,
         IDENTIFIER,
         NUMBER_LITERAL,
         STRING_LITERAL,
@@ -42,9 +43,11 @@ public:
     };
 
     // TODO: separate into open/close punctuators
+    // These must be ordered from longest to shortest
     static constexpr std::array PUNCTUATORS {
         std::pair{ TokenKind::EQUALS, Conf::STRING_EQUALS },
         std::pair{ TokenKind::WALRUS, Conf::STRING_WALRUS },
+        std::pair{ TokenKind::COMMA, Conf::STRING_COMMA },
         std::pair{ TokenKind::SEMI_COLON, Conf::STRING_SEMI_COLON },
         std::pair{ TokenKind::OPEN_BRACE, Conf::STRING_OPEN_BRACE },
         std::pair{ TokenKind::CLOSE_BRACE, Conf::STRING_CLOSE_BRACE },
@@ -52,6 +55,10 @@ public:
 
     static constexpr std::array STATEMENT_TERMINATORS {
         std::pair{ TokenKind::SEMI_COLON, Conf::STRING_SEMI_COLON },
+    };
+
+    static constexpr std::array STATEMENT_SEPARATORS {
+        std::pair{ TokenKind::COMMA, Conf::STRING_COMMA },
     };
 
     static constexpr std::array STRING_LITERAL_OPEN_PUNCTUATORS {
@@ -114,6 +121,7 @@ public:
     static constexpr bool isCommentStart(char c);
     static constexpr bool isPathLiteralStart(char c);
     static constexpr bool isStatementTerminator(char c);
+    static constexpr bool isStatementSeparator(char c);
 
     static std::optional<Token> eatKeyword(std::ifstream& stream);
     static std::optional<Token> eatIdentifier(std::ifstream& stream);
@@ -155,6 +163,32 @@ public:
 
         return std::make_pair(punctuator_kind, terminator_kind);
     }
+
+    template<size_t N>
+    static constexpr std::optional<TokenKind> peekTokenFor(std::ifstream& stream, std::array<std::pair<TokenKind, std::string_view>, N> token_list) {
+        using enum TokenKind;
+
+        size_t reset = stream.tellg();
+        std::array<char, 1024> token_buffer{};
+
+        auto punctuator_kind = UNKNOWN;
+        for (auto const& [kind, chunk] : token_list) {
+            stream.read(&token_buffer[0], chunk.size());
+            if (std::string_view{token_buffer.data(), chunk.size()} == chunk) {
+                punctuator_kind = kind;
+                break;
+            } else {
+                stream.seekg(-chunk.size(), std::ios::cur);
+            }
+        }
+
+        if (punctuator_kind == UNKNOWN) {
+            stream.seekg(reset);
+            return std::nullopt;
+        }
+
+        return punctuator_kind;
+    }
 };
 
 template <>
@@ -168,6 +202,7 @@ struct std::formatter<ConfLexer::TokenKind> : std::formatter<std::string_view> {
             case EQUALS:             return "EQUALS";
             case WALRUS:             return "WALRUS";
             case SEMI_COLON:         return "SEMI_COLON";
+            case COMMA:              return "COMMA";
             case NUMBER_LITERAL:     return "NUMBER";
             case STRING_LITERAL:     return "STRING_LITERAL";
             case PATH_LITERAL:       return "PATH_LITERAL";

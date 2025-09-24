@@ -28,10 +28,12 @@ void printAst(typename ConfParser::NodePtr const& node, int indent = 0) {
                 printAst(child, indent + 4);
             }
         },
-        [&](ConfParser::KeywordBinOp const& node) {
+        [&](ConfParser::KeywordStatement const& node) {
             std::println("{:>{}}{}", " ", indent, node.kind);
             std::println("{:>{}}{}", " ", indent + 4, node.keyword.data);
-            std::println("{:>{}}{}", " ", indent + 4, node.expression.data);
+            for (auto const& child : node.arguments) {
+                printAst(child, indent + 4);
+            }
         },
         [&](ConfParser::VariableAssignmentExpression const& node) {
             std::println("{:>{}}{}", " ", indent, node.kind);
@@ -64,7 +66,7 @@ void includeFiles(typename ConfParser::NodePtr const& ast) {
     }
 
     auto const visitor = Visitors {
-        [&](ConfParser::KeywordBinOp const& keyword_bin_op) {
+        [&](ConfParser::KeywordStatement const& keyword_statement) {
         },
         [&]<HasNodeKind T>(T const& node) {
             constexpr bool has_children = std::same_as<T, typename ConfParser::RootBlock>

@@ -140,8 +140,8 @@ std::expected<detail::NodePtr, detail::Error> ConfParser::parse(detail::NodePtr&
         } break;
 
         case KEYWORD_INCLUDE: {
-            if (auto keyword_bin_op = this->takeKeywordBinOp(head.front(), parent)) {
-                return std::move(keyword_bin_op.value());
+            if (auto keyword_statement = this->takeKeywordStatement(head.front(), parent)) {
+                return std::move(keyword_statement.value());
             }
 
             m_cursor = reset;
@@ -221,19 +221,54 @@ std::optional<detail::NodePtr> ConfParser::takeNamedBlock(detail::TokenType cons
     return root;
 }
 
-std::optional<detail::NodePtr> ConfParser::takeKeywordBinOp(detail::TokenType const& token, detail::NodePtr& parent) {
+std::optional<detail::NodePtr> ConfParser::takeKeywordStatement(detail::TokenType const& token, detail::NodePtr& parent) {
     using enum NodeKind;
     using enum TokenKindType;
 
     size_t const reset = m_cursor;
 
-    auto const expression_token = m_token_list
-        | std::views::drop(m_cursor++)
-        | std::views::take(1);
+    auto const push_child = [&](NodePtr& root, NodePtr& child) {
+        auto const push_child_visitor = Visitors {
+            [&](KeywordStatement& root) {
+                root.arguments.push_back(std::move(child));
+            },
+            [](auto&&){},
+        };
 
-    if (!ConfParser::isExpressionToken(expression_token.front().kind)) {
-        m_cursor = reset;
-        return std::nullopt;
+        std::visit(push_child_visitor, *root);
+    };
+
+    auto root = std::make_unique<Node>(
+        Node {
+            KeywordStatement {
+                .kind = KEYWORD_STATEMENT,
+                .keyword = token,
+                .arguments = {},
+                .me = nullptr,
+                .parent = parent.get(),
+            }
+        }
+    );
+
+    std::get<KeywordStatement>(*root).me = root.get();
+
+    while (true) {
+        auto node = this->parse(root);
+
+        auto const separator_or_terminator_token = m_token_list
+            | std::views::drop(m_cursor)
+            | std::views::take(1);
+
+        if (!node && detail::rangeIsTokenKind(separator_or_terminator_token, COMMA)) {
+            ++m_cursor;
+            continue;
+        }
+
+        if (!node) {
+            break;
+        }
+
+        push_child(root, node.value());
     }
 
     auto const terminator_token = m_token_list
@@ -244,20 +279,6 @@ std::optional<detail::NodePtr> ConfParser::takeKeywordBinOp(detail::TokenType co
         m_cursor = reset;
         return std::nullopt;
     }
-
-    auto root = std::make_unique<Node>(
-        Node {
-            KeywordBinOp {
-                .kind = KEYWORD_BIN_OP,
-                .keyword = token,
-                .expression = expression_token.front(),
-                .me = nullptr,
-                .parent = parent.get(),
-            }
-        }
-    );
-
-    std::get<KeywordBinOp>(*root).me = root.get();
 
     return root;
 }

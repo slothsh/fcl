@@ -58,8 +58,6 @@ detail::ExpectedType ConfLexer::lexInputFileStream(std::ifstream& input_file) {
     while (!input_file.eof()) {
         if (auto token = ConfLexer::eatSpaces(input_file)) {
             context = NONE;
-        } else if (auto token = ConfLexer::eatPunctuator(input_file)) {
-            context = PUSH_TOKEN(token_list, token, NONE);
         } else if (auto token = ConfLexer::eatKeyword(input_file)) {
             context = PUSH_TOKEN(token_list, token, NONE);
         } else if (auto token = ConfLexer::eatIdentifier(input_file)) {
@@ -69,6 +67,8 @@ detail::ExpectedType ConfLexer::lexInputFileStream(std::ifstream& input_file) {
         } else if (auto token = ConfLexer::eatLiteral(input_file)) {
             context = PUSH_TOKEN(token_list, token, NONE);
         } else if (auto token = ConfLexer::eatComment(input_file)) {
+            context = PUSH_TOKEN(token_list, token, NONE);
+        } else if (auto token = ConfLexer::eatPunctuator(input_file)) {
             context = PUSH_TOKEN(token_list, token, NONE);
         } else {
             WARN("unknown token: {}", static_cast<char>(input_file.peek()));
@@ -145,7 +145,11 @@ constexpr std::optional<std::string_view> ConfLexer::tokenKindString(TokenKind t
     using enum TokenKind;
 
     switch (token_kind) {
+        // Defined tokens
         case EQUALS:             return STRING_EQUALS;
+        case WALRUS:             return STRING_WALRUS;
+        case SEMI_COLON:         return STRING_SEMI_COLON;
+        case COMMA:              return STRING_COMMA;
         case OPEN_BRACE:         return STRING_OPEN_BRACE;
         case CLOSE_BRACE:        return STRING_CLOSE_BRACE;
         case OPEN_DOUBLE_BRACE:  return STRING_OPEN_DOUBLE_BRACE;
@@ -159,7 +163,15 @@ constexpr std::optional<std::string_view> ConfLexer::tokenKindString(TokenKind t
         case VERTICAL_FEED:      return STRING_VERTICAL_FEED;
         case SPACE:              return STRING_SPACE;
         case KEYWORD_INCLUDE:    return STRING_KEYWORD_INCLUDE;
-        default:                 return std::nullopt;
+
+        // Dynamic tokens
+        case IDENTIFIER:
+        case COMMENT:
+        case NUMBER_LITERAL:
+        case STRING_LITERAL:
+        case PATH_LITERAL:
+        case SHELL_LITERAL:
+        case UNKNOWN:            return std::nullopt;
     }
 }
 
@@ -216,6 +228,15 @@ constexpr bool ConfLexer::isStatementTerminator(char c) {
             return std::string_view{pair.second}.front() == c;
         }
     ) != ConfLexer::STATEMENT_TERMINATORS.end();
+}
+
+constexpr bool ConfLexer::isStatementSeparator(char c) {
+    return std::ranges::find_if(
+        ConfLexer::STATEMENT_SEPARATORS,
+        [c](std::pair<TokenKind, std::string_view> const& pair) {
+            return std::string_view{pair.second}.front() == c;
+        }
+    ) != ConfLexer::STATEMENT_SEPARATORS.end();
 }
 
 std::optional<detail::Token> ConfLexer::eatKeyword(std::ifstream& stream) {
@@ -362,7 +383,13 @@ std::optional<detail::Token> ConfLexer::eatLiteral(std::ifstream& stream) {
 
         case PATH_LITERAL: {
             stream.read(&token_buffer[cursor++], 1);
-            while (!ConfLexer::isSpace(stream.peek()) && !ConfLexer::isStatementTerminator(stream.peek())) {
+            auto const valid_next_token = [](char c) {
+                return !ConfLexer::isSpace(c)
+                    && !ConfLexer::isStatementTerminator(c)
+                    && !ConfLexer::isStatementSeparator(c);
+            };
+
+            while (valid_next_token(stream.peek())) {
                 if (auto escaped_token = ConfLexer::peekEscapedCharacter(stream)) {
                     std::ranges::copy(std::string_view{&escaped_token.value(), 1}, token_buffer.begin() + cursor);
                     cursor += sizeof(char);
@@ -380,7 +407,13 @@ std::optional<detail::Token> ConfLexer::eatLiteral(std::ifstream& stream) {
 
         case NUMBER_LITERAL: {
             stream.read(&token_buffer[cursor++], 1);
-            while (!ConfLexer::isSpace(stream.peek()) && !ConfLexer::isStatementTerminator(stream.peek())) {
+            auto const valid_next_token = [](char c) {
+                return !ConfLexer::isSpace(c)
+                    && !ConfLexer::isStatementTerminator(c)
+                    && !ConfLexer::isStatementSeparator(c);
+            };
+
+            while (valid_next_token(stream.peek())) {
                 stream.read(&token_buffer[cursor++], 1);
             }
         } break;
@@ -454,37 +487,21 @@ std::optional<detail::Token> ConfLexer::eatSpaces(std::ifstream& stream) {
 std::optional<detail::Token> ConfLexer::eatPunctuator(std::ifstream& stream) {
     using enum TokenKind;
 
-    if (!ConfLexer::isPunctuatorStart(stream.peek())) {
+    auto punctuator = ConfLexer::peekTokenFor(stream, ConfLexer::PUNCTUATORS);
+    if (!punctuator) {
         return std::nullopt;
     }
 
-    size_t cursor = 0;
-    std::array<char, 1024> token_buffer{};
-
-    size_t reset = stream.tellg();
-
-    while (!ConfLexer::isSpace(stream.peek())) {
-        stream.read(&token_buffer[cursor++], 1);
-    }
-
-    auto const punctuator = std::ranges::find_if(
-        ConfLexer::PUNCTUATORS,
-        [punctuator_chunk = std::string_view{token_buffer.data(), cursor}]
-        (std::pair<TokenKind, std::string_view> const& pair) {
-            return pair.second == punctuator_chunk;
-        }
-    );
-
-    if (punctuator == ConfLexer::PUNCTUATORS.end()) {
-        stream.seekg(reset);
+    auto const punctuator_string = ConfLexer::tokenKindString(punctuator.value());
+    if (!punctuator_string) {
         return std::nullopt;
     }
 
     return Token {
-        .data = std::string{token_buffer.data(), cursor},
-        .kind = punctuator->first,
+        .data = punctuator_string.value().data(),
+        .kind = punctuator.value(),
         .position = static_cast<size_t>(stream.tellg()),
-        .length = cursor,
+        .length = punctuator_string.value().size(),
     };
 }
 

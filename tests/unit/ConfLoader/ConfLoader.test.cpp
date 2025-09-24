@@ -25,11 +25,13 @@ void printAst(ConfLoader::AstType const& node, int indent = 0) {
                 printAst(child, indent + 4);
             }
         },
-        [&](ConfParser::KeywordBinOp const& node) {
+        [&](ConfParser::KeywordStatement const& node) {
             std::println("{:>{}}{}", " ", indent, node.kind);
             std::println("{:>{}}{}", " ", indent + 4, node.keyword.data);
-            std::println("{:>{}}{}", " ", indent + 4, node.expression.data);
             std::println("{:>{}}parent: {}", " ", indent + 4, (void*)node.parent);
+            for (auto const& child : node.arguments) {
+                printAst(child, indent + 4);
+            }
         },
         [&](ConfParser::VariableAssignmentExpression const& node) {
             std::println("{:>{}}{}", " ", indent, node.kind);

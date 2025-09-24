@@ -43,21 +43,26 @@ std::expected<void, ConfLoader::Error> ConfLoader::visitIncludes(ConfLoader::Ast
     using enum Error;
     using enum ConfLoader::NodeKindType;
     using enum ConfLoader::TokenKindType;
-    using KeywordBinOp = ConfLoader::ParserType::KeywordBinOp;
+    using KeywordStatement = ConfLoader::ParserType::KeywordStatement;
     using RootBlock = ConfLoader::ParserType::RootBlock;
     using NamedBlock = ConfLoader::ParserType::NamedBlock;
+    using StringExpression = ConfLoader::ParserType::StringExpression;
+    using PathExpression = ConfLoader::ParserType::PathExpression;
 
     if (!ast) {
         return std::unexpected(NULL_AST_POINTER);
     }
 
     auto const visitor = Visitors {
-        [&](KeywordBinOp& keyword_bin_op) -> std::expected<void, Error> {
-            if (keyword_bin_op.keyword.data != Conf::STRING_KEYWORD_INCLUDE) {
+        [&](KeywordStatement& keyword_statement) -> std::expected<void, Error> {
+            if (keyword_statement.keyword.data != Conf::STRING_KEYWORD_INCLUDE) {
                 return {};
             }
 
-            auto conf_lexer = ConfLoader::LexerType::lexFile(keyword_bin_op.expression.data);
+            // TODO: handle argument unwrapping gracefully
+            std::string_view const include_path = std::get<PathExpression>(*keyword_statement.arguments.front()).token.data;
+
+            auto conf_lexer = ConfLoader::LexerType::lexFile(include_path);
             if (!conf_lexer) {
                 return std::unexpected(FAILED_TO_LEX);
             }
@@ -72,7 +77,7 @@ std::expected<void, ConfLoader::Error> ConfLoader::visitIncludes(ConfLoader::Ast
                 return recursed_include_ast;
             }
 
-            return this->visitSpliceIncludes(keyword_bin_op.parent, keyword_bin_op.me, include_ast.value());
+            return this->visitSpliceIncludes(keyword_statement.parent, keyword_statement.me, include_ast.value());
         },
 
         [&]<detail::HasNodeKind T>(T& ast) -> std::expected<void, Error> {

@@ -24,6 +24,7 @@ static constexpr std::string_view STRING_SPACE               = " ";
 
 // Single Character Strings
 static constexpr std::string_view STRING_SEMI_COLON          = ";";
+static constexpr std::string_view STRING_COMMA               = ",";
 
 // Single Delimiter Strings
 static constexpr std::string_view STRING_COMMENT_SINGLE_LINE = "#";
