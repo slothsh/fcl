@@ -4,7 +4,6 @@
 
 template<typename T>
 concept SimpleExpression = std::same_as<T, ConfParser::StringExpression>
-    || std::same_as<T, ConfParser::NumberExpression>
     || std::same_as<T, ConfParser::PathExpression>;
 
 void printAst(ConfLoader::AstType const& node, int indent = 0) {
@@ -49,6 +48,11 @@ void printAst(ConfLoader::AstType const& node, int indent = 0) {
             std::println("{:>{}}{}", " ", indent, node.kind);
             std::println("{:>{}}{}", " ", indent + 4, node.command.data);
             std::println("{:>{}}parent: {}", " ", indent + 4, (void*)node.parent);
+        },
+        [&](ConfParser::NumberExpression const& node) {
+            std::println("{:>{}}{}", " ", indent, node.kind);
+            std::println("{:>{}}{}", " ", indent + 4, node.value);
+            std::println("{:>{}}{}", " ", indent + 4, node.token.data);
         },
         [&]<SimpleExpression T>(T const& node) {
             std::println("{:>{}}{}", " ", indent, node.kind);

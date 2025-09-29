@@ -2,6 +2,9 @@
 #include <expected>
 #include <ranges>
 #include <algorithm>
+#include <string>
+#include <cstddef>
+#include <utility>
 
 namespace detail {
     using Node = typename ConfParser::Node;
@@ -9,6 +12,7 @@ namespace detail {
     using NodePtr = typename ConfParser::NodePtr;
     using TokenType = typename ConfParser::TokenType;
     using TokenKindType = typename ConfParser::TokenKindType;
+    using NumberType = typename ConfParser::NumberType;
     using Error = typename ConfParser::Error;
 
     template<std::ranges::range R>
@@ -115,7 +119,10 @@ std::expected<detail::NodePtr, detail::Error> ConfParser::parse(detail::NodePtr&
             m_cursor = reset;
         } break;
 
-        case NUMBER_LITERAL: {
+        case NUMBER_LITERAL_HEXADECIMAL:
+        case NUMBER_LITERAL_DECIMAL:
+        case NUMBER_LITERAL_OCTAL:
+        case NUMBER_LITERAL_BINARY: {
             if (auto number_expression = this->takeNumberExpression(head.front(), parent)) {
                 return std::move(number_expression.value());
             }
@@ -146,6 +153,10 @@ std::expected<detail::NodePtr, detail::Error> ConfParser::parse(detail::NodePtr&
 
             m_cursor = reset;
         } break;
+
+        case COMMENT: {
+            return this->parse(parent);
+        }
 
         default: {
             m_cursor = reset;
@@ -409,7 +420,19 @@ std::optional<detail::NodePtr> ConfParser::takeNumberExpression(detail::TokenTyp
     using enum NodeKind;
     using enum TokenKindType;
 
-    if (token.kind != NUMBER_LITERAL) {
+    static constexpr std::array number_kinds {
+        NUMBER_LITERAL_HEXADECIMAL,
+        NUMBER_LITERAL_DECIMAL,
+        NUMBER_LITERAL_OCTAL,
+        NUMBER_LITERAL_BINARY,
+    };
+
+    if (!std::ranges::contains(number_kinds, token.kind)) {
+        return std::nullopt;
+    }
+
+    auto const number_value = ConfParser::convertTokenToNumber(token);
+    if (!number_value) {
         return std::nullopt;
     }
 
@@ -417,6 +440,7 @@ std::optional<detail::NodePtr> ConfParser::takeNumberExpression(detail::TokenTyp
         Node {
             NumberExpression {
                 .kind = NUMBER_EXPRESSION,
+                .value = number_value.value(),
                 .token = token,
                 .me = nullptr,
                 .parent = parent.get(),
@@ -475,4 +499,50 @@ std::optional<detail::NodePtr> ConfParser::takeShellExpression(detail::TokenType
     std::get<ShellExpression>(*root).me = root.get();
 
     return root;
+}
+
+std::expected<detail::NumberType, detail::Error> ConfParser::convertTokenToNumber(detail::TokenType const& token) noexcept {
+    using enum Error;
+    using namespace Conf;
+    using enum TokenKindType;
+
+    switch (token.kind) {
+        case NUMBER_LITERAL_HEXADECIMAL: {
+            auto const number = Number::fromHexadecimalString<NumberType>(token.data);
+            if (!number) {
+                return std::unexpected(NUMBER_CONVERSION_ERROR);
+            }
+
+            return number.value();
+        } break;
+
+        case NUMBER_LITERAL_DECIMAL: {
+            auto const number = Number::fromDecimalString<NumberType>(token.data);
+            if (!number) {
+                return std::unexpected(NUMBER_CONVERSION_ERROR);
+            }
+
+            return number.value();
+        } break;
+
+        case NUMBER_LITERAL_OCTAL: {
+            auto const number = Number::fromOctalString<NumberType>(token.data);
+            if (!number) {
+                return std::unexpected(NUMBER_CONVERSION_ERROR);
+            }
+
+            return number.value();
+        } break;
+
+        case NUMBER_LITERAL_BINARY: {
+            auto const number = Number::fromBinaryString<NumberType>(token.data);
+            if (!number) {
+                return std::unexpected(NUMBER_CONVERSION_ERROR);
+            }
+
+            return number.value();
+        } break;
+
+        default: return std::unexpected(NUMBER_CONVERSION_ERROR);
+    }
 }

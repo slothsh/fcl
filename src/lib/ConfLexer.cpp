@@ -140,38 +140,157 @@ std::optional<char> ConfLexer::peekEscapedCharacter(std::ifstream& stream) {
     return std::nullopt;
 }
 
+std::optional<std::pair<detail::TokenKind, std::string>> ConfLexer::peekNumberToken(std::ifstream& stream) {
+    using enum TokenKind;
+
+    size_t reset = stream.tellg();
+    std::array<char, 1024> token_buffer{};
+
+    auto const check_hexadecimal = [&]() -> std::optional<size_t> {
+        stream.read(token_buffer.data(), 2);
+        auto const prefix = std::string_view{token_buffer.data(), 2};
+        if (prefix != "0x") {
+            stream.seekg(reset);
+            return std::nullopt;
+        }
+
+        size_t cursor = 0;
+        static constexpr size_t max_digits = 16;
+
+        while (ConfLexer::isHexadecimalDigit(stream.peek()) && cursor <= max_digits) {
+            stream.read(&token_buffer[cursor++], 1);
+        }
+
+        if (cursor == 0) {
+            stream.seekg(reset);
+            return std::nullopt;
+        }
+
+        return cursor;
+    };
+
+    auto const check_decimal = [&]() -> std::optional<size_t> {
+        size_t cursor = 0;
+        size_t decimal_points = 0;
+
+        static constexpr size_t max_digits = 20;
+
+        while ((ConfLexer::isDecimalDigit(stream.peek()) || stream.peek() == '.') && cursor <= max_digits && decimal_points <= 1) {
+            if (stream.peek() == '.') {
+                ++decimal_points;
+                stream.read(&token_buffer[cursor++], 1);
+                continue;
+            }
+
+            stream.read(&token_buffer[cursor++], 1);
+        }
+
+        if (cursor == 0) {
+            stream.seekg(reset);
+            return std::nullopt;
+        }
+
+        return cursor;
+    };
+
+    auto const check_octal = [&]() -> std::optional<size_t> {
+        stream.read(token_buffer.data(), 2);
+        auto const prefix = std::string_view{token_buffer.data(), 2};
+        if (prefix != "0o") {
+            stream.seekg(reset);
+            return std::nullopt;
+        }
+
+        size_t cursor = 0;
+        static constexpr size_t max_digits = 22;
+
+        while (ConfLexer::isOctalDigit(stream.peek()) && cursor <= max_digits) {
+            stream.read(&token_buffer[cursor++], 1);
+        }
+
+        if (cursor == 0) {
+            stream.seekg(reset);
+            return std::nullopt;
+        }
+
+        return cursor;
+    };
+
+    auto const check_binary = [&]() -> std::optional<size_t> {
+        stream.read(token_buffer.data(), 2);
+        auto const prefix = std::string_view{token_buffer.data(), 2};
+        if (prefix != "0b") {
+            stream.seekg(reset);
+            return std::nullopt;
+        }
+
+        size_t cursor = 0;
+        static constexpr size_t max_digits = 64;
+
+        while (ConfLexer::isBinaryDigit(stream.peek()) && cursor <= max_digits) {
+            stream.read(&token_buffer[cursor++], 1);
+        }
+
+        if (cursor == 0) {
+            stream.seekg(reset);
+            return std::nullopt;
+        }
+
+        return cursor;
+    };
+
+    auto const check_scientific = [&]() -> std::optional<size_t> {
+        TODO("not implemented");
+    };
+
+    if (auto size = check_binary()) {
+        return std::make_pair(NUMBER_LITERAL_BINARY, std::string{token_buffer.data(), size.value()});
+    } else if (auto size = check_octal()) {
+        return std::make_pair(NUMBER_LITERAL_OCTAL, std::string{token_buffer.data(), size.value()});
+    } else if (auto size = check_hexadecimal()) {
+        return std::make_pair(NUMBER_LITERAL_HEXADECIMAL, std::string{token_buffer.data(), size.value()});
+    } else if (auto size = check_decimal()) {
+        return std::make_pair(NUMBER_LITERAL_DECIMAL, std::string{token_buffer.data(), size.value()});
+    }
+
+    return std::nullopt;
+}
+
 constexpr std::optional<std::string_view> ConfLexer::tokenKindString(TokenKind token_kind) {
     using namespace Conf;
     using enum TokenKind;
 
     switch (token_kind) {
         // Defined tokens
-        case EQUALS:             return STRING_EQUALS;
-        case WALRUS:             return STRING_WALRUS;
-        case SEMI_COLON:         return STRING_SEMI_COLON;
-        case COMMA:              return STRING_COMMA;
-        case OPEN_BRACE:         return STRING_OPEN_BRACE;
-        case CLOSE_BRACE:        return STRING_CLOSE_BRACE;
-        case OPEN_DOUBLE_BRACE:  return STRING_OPEN_DOUBLE_BRACE;
-        case CLOSE_DOUBLE_BRACE: return STRING_CLOSE_DOUBLE_BRACE;
-        case OPEN_DOUBLE_QUOTE:  return STRING_OPEN_DOUBLE_QUOTE;
-        case CLOSE_DOUBLE_QUOTE: return STRING_CLOSE_DOUBLE_QUOTE;
-        case OPEN_QUOTE:         return STRING_OPEN_QUOTE;
-        case CLOSE_QUOTE:        return STRING_CLOSE_QUOTE;
-        case TAB_FEED:           return STRING_TAB_FEED;
-        case LINE_FEED:          return STRING_LINE_FEED;
-        case VERTICAL_FEED:      return STRING_VERTICAL_FEED;
-        case SPACE:              return STRING_SPACE;
-        case KEYWORD_INCLUDE:    return STRING_KEYWORD_INCLUDE;
+        case EQUALS:                     return STRING_EQUALS;
+        case WALRUS:                     return STRING_WALRUS;
+        case SEMI_COLON:                 return STRING_SEMI_COLON;
+        case COMMA:                      return STRING_COMMA;
+        case OPEN_BRACE:                 return STRING_OPEN_BRACE;
+        case CLOSE_BRACE:                return STRING_CLOSE_BRACE;
+        case OPEN_DOUBLE_BRACE:          return STRING_OPEN_DOUBLE_BRACE;
+        case CLOSE_DOUBLE_BRACE:         return STRING_CLOSE_DOUBLE_BRACE;
+        case OPEN_DOUBLE_QUOTE:          return STRING_OPEN_DOUBLE_QUOTE;
+        case CLOSE_DOUBLE_QUOTE:         return STRING_CLOSE_DOUBLE_QUOTE;
+        case OPEN_QUOTE:                 return STRING_OPEN_QUOTE;
+        case CLOSE_QUOTE:                return STRING_CLOSE_QUOTE;
+        case TAB_FEED:                   return STRING_TAB_FEED;
+        case LINE_FEED:                  return STRING_LINE_FEED;
+        case VERTICAL_FEED:              return STRING_VERTICAL_FEED;
+        case SPACE:                      return STRING_SPACE;
+        case KEYWORD_INCLUDE:            return STRING_KEYWORD_INCLUDE;
 
         // Dynamic tokens
         case IDENTIFIER:
         case COMMENT:
-        case NUMBER_LITERAL:
+        case NUMBER_LITERAL_DECIMAL:
+        case NUMBER_LITERAL_HEXADECIMAL:
+        case NUMBER_LITERAL_BINARY:
+        case NUMBER_LITERAL_OCTAL:
         case STRING_LITERAL:
         case PATH_LITERAL:
         case SHELL_LITERAL:
-        case UNKNOWN:            return std::nullopt;
+        case UNKNOWN:                    return std::nullopt;
     }
 }
 
@@ -209,8 +328,22 @@ constexpr bool ConfLexer::isStringLiteralStart(char c) {
     return char_string == Conf::STRING_OPEN_QUOTE || char_string == Conf::STRING_OPEN_DOUBLE_QUOTE;
 }
 
-constexpr bool ConfLexer::isNumberLiteralStart(char c) {
+constexpr bool ConfLexer::isHexadecimalDigit(char c) {
+    return ('A' <= c && c <= 'F')
+        || ('a' <= c && c <= 'f')
+        || ('0' <= c && c <= '9');
+}
+
+constexpr bool ConfLexer::isDecimalDigit(char c) {
     return ('0' <= c && c <= '9');
+}
+
+constexpr bool ConfLexer::isOctalDigit(char c) {
+    return ('0' <= c && c <= '7');
+}
+
+constexpr bool ConfLexer::isBinaryDigit(char c) {
+    return ('0' <= c && c <= '1');
 }
 
 constexpr bool ConfLexer::isCommentStart(char c) {
@@ -347,88 +480,71 @@ std::optional<detail::Token> ConfLexer::eatLiteral(std::ifstream& stream) {
     size_t cursor = 0;
     std::array<char, 1024> token_buffer{};
 
-    auto token_kind = UNKNOWN;
-
     if (ConfLexer::isStringLiteralStart(stream.peek())) {
-        token_kind = STRING_LITERAL;
-    } else if (ConfLexer::isPathLiteralStart(stream.peek())) {
-        token_kind = PATH_LITERAL;
-    } else if (ConfLexer::isNumberLiteralStart(stream.peek())) {
-        token_kind = NUMBER_LITERAL;
-    } else {
-        return std::nullopt;
-    }
+        auto const delimiters = ConfLexer::peekDelimitersFor(stream, ConfLexer::STRING_LITERAL_OPEN_PUNCTUATORS);
+        if (!delimiters) {
+            return std::nullopt;
+        }
 
-    switch (token_kind) {
-        case STRING_LITERAL: {
-            auto const delimiters = ConfLexer::peekDelimitersFor(stream, ConfLexer::STRING_LITERAL_OPEN_PUNCTUATORS);
-            if (!delimiters) {
+        auto const& [_, terminator_kind] = delimiters.value();
+        auto const increment_stream = detail::makeStreamIncrementor(stream);
+
+        bool escape_next = false;
+        while (!ConfLexer::peekTokenKind(stream, terminator_kind).and_then(increment_stream)) {
+            if (auto escaped_token = ConfLexer::peekEscapedCharacter(stream)) {
+                std::ranges::copy(std::string_view{&escaped_token.value(), 1}, token_buffer.begin() + cursor);
+                cursor += sizeof(char);
+                continue;
+            }
+
+            stream.read(&token_buffer[cursor++], 1);
+        }
+
+        return Token {
+            .data = std::string{token_buffer.data(), cursor},
+            .kind = STRING_LITERAL,
+            .position = static_cast<size_t>(stream.tellg()),
+            .length = cursor,
+        };
+    } else if (ConfLexer::isPathLiteralStart(stream.peek())) {
+        stream.read(&token_buffer[cursor++], 1);
+        auto const valid_next_token = [](char c) {
+            return !ConfLexer::isSpace(c)
+            && !ConfLexer::isStatementTerminator(c)
+            && !ConfLexer::isStatementSeparator(c);
+        };
+
+        while (valid_next_token(stream.peek())) {
+            if (auto escaped_token = ConfLexer::peekEscapedCharacter(stream)) {
+                std::ranges::copy(std::string_view{&escaped_token.value(), 1}, token_buffer.begin() + cursor);
+                cursor += sizeof(char);
+                continue;
+            }
+
+            if (ConfLexer::peekTokenKind(stream, LINE_FEED)) {
+                stream.seekg(reset);
                 return std::nullopt;
             }
 
-            auto const& [_, terminator_kind] = delimiters.value();
-            auto const increment_stream = detail::makeStreamIncrementor(stream);
-
-            bool escape_next = false;
-            while (!ConfLexer::peekTokenKind(stream, terminator_kind).and_then(increment_stream)) {
-                if (auto escaped_token = ConfLexer::peekEscapedCharacter(stream)) {
-                    std::ranges::copy(std::string_view{&escaped_token.value(), 1}, token_buffer.begin() + cursor);
-                    cursor += sizeof(char);
-                    continue;
-                }
-
-                stream.read(&token_buffer[cursor++], 1);
-            }
-        } break;
-
-        case PATH_LITERAL: {
             stream.read(&token_buffer[cursor++], 1);
-            auto const valid_next_token = [](char c) {
-                return !ConfLexer::isSpace(c)
-                    && !ConfLexer::isStatementTerminator(c)
-                    && !ConfLexer::isStatementSeparator(c);
-            };
-
-            while (valid_next_token(stream.peek())) {
-                if (auto escaped_token = ConfLexer::peekEscapedCharacter(stream)) {
-                    std::ranges::copy(std::string_view{&escaped_token.value(), 1}, token_buffer.begin() + cursor);
-                    cursor += sizeof(char);
-                    continue;
-                }
-
-                if (ConfLexer::peekTokenKind(stream, LINE_FEED)) {
-                    stream.seekg(reset);
-                    return std::nullopt;
-                }
-
-                stream.read(&token_buffer[cursor++], 1);
-            }
-        } break;
-
-        case NUMBER_LITERAL: {
-            stream.read(&token_buffer[cursor++], 1);
-            auto const valid_next_token = [](char c) {
-                return !ConfLexer::isSpace(c)
-                    && !ConfLexer::isStatementTerminator(c)
-                    && !ConfLexer::isStatementSeparator(c);
-            };
-
-            while (valid_next_token(stream.peek())) {
-                stream.read(&token_buffer[cursor++], 1);
-            }
-        } break;
-
-        default: {
-            return std::nullopt;
         }
+
+        return Token {
+            .data = std::string{token_buffer.data(), cursor},
+            .kind = PATH_LITERAL,
+            .position = static_cast<size_t>(stream.tellg()),
+            .length = cursor,
+        };
+    } else if (auto number_literal = ConfLexer::peekNumberToken(stream)) {
+        return Token {
+            .data = std::move(number_literal->second),
+            .kind = number_literal->first,
+            .position = static_cast<size_t>(stream.tellg()),
+            .length = number_literal->second.size(),
+        };
     }
 
-    return Token {
-        .data = std::string{token_buffer.data(), cursor},
-        .kind = token_kind,
-        .position = static_cast<size_t>(stream.tellg()),
-        .length = cursor,
-    };
+    return std::nullopt;
 }
 
 std::optional<detail::Token> ConfLexer::eatSpaces(std::ifstream& stream) {

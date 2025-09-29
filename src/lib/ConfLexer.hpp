@@ -18,7 +18,10 @@ public:
         SEMI_COLON,
         COMMA,
         IDENTIFIER,
-        NUMBER_LITERAL,
+        NUMBER_LITERAL_DECIMAL,
+        NUMBER_LITERAL_HEXADECIMAL,
+        NUMBER_LITERAL_BINARY,
+        NUMBER_LITERAL_OCTAL,
         STRING_LITERAL,
         PATH_LITERAL,
         SHELL_LITERAL,
@@ -107,6 +110,7 @@ public:
     static std::optional<Error> pushToken(Token&& token, TokenListType& ast);
     static std::optional<std::string_view> peekTokenKind(std::ifstream& stream, TokenKind token_kind);
     static std::optional<char> peekEscapedCharacter(std::ifstream& stream);
+    static std::optional<std::pair<TokenKind, std::string>> peekNumberToken(std::ifstream& stream);
 
     static constexpr std::optional<TokenKind> terminatorFor(TokenKind token_kind);
     static constexpr std::optional<std::string_view> tokenKindString(TokenKind token_kind);
@@ -116,8 +120,11 @@ public:
     static constexpr bool isIdentifierStart(char c);
     static constexpr bool isPunctuatorStart(char c);
     static constexpr bool isStringLiteralStart(char c);
-    static constexpr bool isNumberLiteralStart(char c);
     static constexpr bool isNumberLiteral(char c);
+    static constexpr bool isHexadecimalDigit(char c);
+    static constexpr bool isDecimalDigit(char c);
+    static constexpr bool isOctalDigit(char c);
+    static constexpr bool isBinaryDigit(char c);
     static constexpr bool isCommentStart(char c);
     static constexpr bool isPathLiteralStart(char c);
     static constexpr bool isStatementTerminator(char c);
@@ -197,30 +204,33 @@ struct std::formatter<ConfLexer::TokenKind> : std::formatter<std::string_view> {
 
     static constexpr std::string_view to_string(ConfLexer::TokenKind kind) {
         switch (kind) {
-            case UNKNOWN:            return "UNKNOWN";
-            case IDENTIFIER:         return "IDENTIFIER";
-            case EQUALS:             return "EQUALS";
-            case WALRUS:             return "WALRUS";
-            case SEMI_COLON:         return "SEMI_COLON";
-            case COMMA:              return "COMMA";
-            case NUMBER_LITERAL:     return "NUMBER";
-            case STRING_LITERAL:     return "STRING_LITERAL";
-            case PATH_LITERAL:       return "PATH_LITERAL";
-            case SHELL_LITERAL:      return "SHELL_LITERAL";
-            case COMMENT:            return "COMMENT";
-            case OPEN_BRACE:         return "OPEN_BRACE";
-            case CLOSE_BRACE:        return "CLOSE_BRACE";
-            case OPEN_DOUBLE_BRACE:  return "OPEN_DOUBLE_BRACE";
-            case CLOSE_DOUBLE_BRACE: return "CLOSE_DOUBLE_BRACE";
-            case OPEN_QUOTE:         return "OPEN_QUOTE";
-            case CLOSE_QUOTE:        return "CLOSE_QUOTE";
-            case OPEN_DOUBLE_QUOTE:  return "OPEN_DOUBLE_QUOTE";
-            case CLOSE_DOUBLE_QUOTE: return "CLOSE_DOUBLE_QUOTE";
-            case TAB_FEED:           return "TAB_FEED";
-            case LINE_FEED:          return "LINE_FEED";
-            case VERTICAL_FEED:      return "VERTICAL_FEED";
-            case SPACE:              return "SPACE";
-            case KEYWORD_INCLUDE:    return "KEYWORD_INCLUDE";
+            case UNKNOWN:                    return "UNKNOWN";
+            case IDENTIFIER:                 return "IDENTIFIER";
+            case EQUALS:                     return "EQUALS";
+            case WALRUS:                     return "WALRUS";
+            case SEMI_COLON:                 return "SEMI_COLON";
+            case COMMA:                      return "COMMA";
+            case NUMBER_LITERAL_DECIMAL:    return "NUMBER_LITERAL_DECIMAL";
+            case NUMBER_LITERAL_HEXADECIMAL: return "NUMBER_LITERAL_HEXADECIMAL";
+            case NUMBER_LITERAL_BINARY:      return "NUMBER_LITERAL_BINARY";
+            case NUMBER_LITERAL_OCTAL:       return "NUMBER_LITERAL_OCTAL";
+            case STRING_LITERAL:             return "STRING_LITERAL";
+            case PATH_LITERAL:               return "PATH_LITERAL";
+            case SHELL_LITERAL:              return "SHELL_LITERAL";
+            case COMMENT:                    return "COMMENT";
+            case OPEN_BRACE:                 return "OPEN_BRACE";
+            case CLOSE_BRACE:                return "CLOSE_BRACE";
+            case OPEN_DOUBLE_BRACE:          return "OPEN_DOUBLE_BRACE";
+            case CLOSE_DOUBLE_BRACE:         return "CLOSE_DOUBLE_BRACE";
+            case OPEN_QUOTE:                 return "OPEN_QUOTE";
+            case CLOSE_QUOTE:                return "CLOSE_QUOTE";
+            case OPEN_DOUBLE_QUOTE:          return "OPEN_DOUBLE_QUOTE";
+            case CLOSE_DOUBLE_QUOTE:         return "CLOSE_DOUBLE_QUOTE";
+            case TAB_FEED:                   return "TAB_FEED";
+            case LINE_FEED:                  return "LINE_FEED";
+            case VERTICAL_FEED:              return "VERTICAL_FEED";
+            case SPACE:                      return "SPACE";
+            case KEYWORD_INCLUDE:            return "KEYWORD_INCLUDE";
         }
     }
 

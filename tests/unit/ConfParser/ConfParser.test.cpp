@@ -9,7 +9,6 @@ concept HasNodeKind = requires (T t) {
 
 template<typename T>
 concept SimpleExpression = std::same_as<T, ConfParser::StringExpression>
-    || std::same_as<T, ConfParser::NumberExpression>
     || std::same_as<T, ConfParser::PathExpression>;
 
 void printAst(typename ConfParser::NodePtr const& node, int indent = 0) {
@@ -48,6 +47,11 @@ void printAst(typename ConfParser::NodePtr const& node, int indent = 0) {
         [&](ConfParser::ShellExpression const& node) {
             std::println("{:>{}}{}", " ", indent, node.kind);
             std::println("{:>{}}{}", " ", indent + 4, node.command.data);
+        },
+        [&](ConfParser::NumberExpression const& node) {
+            std::println("{:>{}}{}", " ", indent, node.kind);
+            std::println("{:>{}}{}", " ", indent + 4, node.value);
+            std::println("{:>{}}{}", " ", indent + 4, node.token.data);
         },
         [&]<SimpleExpression T>(T const& node) {
             std::println("{:>{}}{}", " ", indent, node.kind);
