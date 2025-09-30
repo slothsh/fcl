@@ -23,7 +23,8 @@ public:
         NUMBER_LITERAL_BINARY,
         NUMBER_LITERAL_OCTAL,
         STRING_LITERAL,
-        PATH_LITERAL,
+        PATH_LITERAL_ABSOLUTE,
+        PATH_LITERAL_RELATIVE,
         SHELL_LITERAL,
         OPEN_BRACE,
         CLOSE_BRACE,
@@ -111,6 +112,7 @@ public:
     static std::optional<std::string_view> peekTokenKind(std::ifstream& stream, TokenKind token_kind);
     static std::optional<char> peekEscapedCharacter(std::ifstream& stream);
     static std::optional<std::pair<TokenKind, std::string>> peekNumberToken(std::ifstream& stream);
+    static std::optional<std::pair<TokenKind, std::string>> peekPathToken(std::ifstream& stream);
 
     static constexpr std::optional<TokenKind> terminatorFor(TokenKind token_kind);
     static constexpr std::optional<std::string_view> tokenKindString(TokenKind token_kind);
@@ -210,12 +212,13 @@ struct std::formatter<ConfLexer::TokenKind> : std::formatter<std::string_view> {
             case WALRUS:                     return "WALRUS";
             case SEMI_COLON:                 return "SEMI_COLON";
             case COMMA:                      return "COMMA";
-            case NUMBER_LITERAL_DECIMAL:    return "NUMBER_LITERAL_DECIMAL";
+            case NUMBER_LITERAL_DECIMAL:     return "NUMBER_LITERAL_DECIMAL";
             case NUMBER_LITERAL_HEXADECIMAL: return "NUMBER_LITERAL_HEXADECIMAL";
             case NUMBER_LITERAL_BINARY:      return "NUMBER_LITERAL_BINARY";
             case NUMBER_LITERAL_OCTAL:       return "NUMBER_LITERAL_OCTAL";
             case STRING_LITERAL:             return "STRING_LITERAL";
-            case PATH_LITERAL:               return "PATH_LITERAL";
+            case PATH_LITERAL_ABSOLUTE:      return "PATH_LITERAL_ABSOLUTE";
+            case PATH_LITERAL_RELATIVE:      return "PATH_LITERAL_RELATIVE";
             case SHELL_LITERAL:              return "SHELL_LITERAL";
             case COMMENT:                    return "COMMENT";
             case OPEN_BRACE:                 return "OPEN_BRACE";

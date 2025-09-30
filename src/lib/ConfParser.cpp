@@ -130,7 +130,8 @@ std::expected<detail::NodePtr, detail::Error> ConfParser::parse(detail::NodePtr&
             m_cursor = reset;
         } break;
 
-        case PATH_LITERAL: {
+        case PATH_LITERAL_ABSOLUTE:
+        case PATH_LITERAL_RELATIVE: {
             if (auto path_expression = this->takePathExpression(head.front(), parent)) {
                 return std::move(path_expression.value());
             }
@@ -166,10 +167,6 @@ std::expected<detail::NodePtr, detail::Error> ConfParser::parse(detail::NodePtr&
     return std::unexpected(TODO);
 }
 
-
-bool ConfParser::isExpressionToken(TokenKindType token_kind) {
-    return std::ranges::contains(ConfParser::EXPRESSION_TOKEN_KINDS, token_kind);
-}
 
 std::optional<detail::NodePtr> ConfParser::takeNamedBlock(detail::TokenType const& token, detail::NodePtr& parent) {
     using enum NodeKind;
@@ -457,7 +454,12 @@ std::optional<detail::NodePtr> ConfParser::takePathExpression(detail::TokenType 
     using enum NodeKind;
     using enum TokenKindType;
 
-    if (token.kind != PATH_LITERAL) {
+    static constexpr std::array path_kinds {
+        PATH_LITERAL_ABSOLUTE,
+        PATH_LITERAL_RELATIVE,
+    };
+
+    if (!std::ranges::contains(path_kinds, token.kind)) {
         return std::nullopt;
     }
 

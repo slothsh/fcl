@@ -120,15 +120,7 @@ public:
         NUMBER_CONVERSION_ERROR,
     };
 
-    static constexpr std::array EXPRESSION_TOKEN_KINDS {
-        TokenKindType::STRING_LITERAL,
-        TokenKindType::NUMBER_LITERAL_DECIMAL,
-        TokenKindType::PATH_LITERAL,
-        TokenKindType::SHELL_LITERAL,
-    };
-
     static std::optional<NodePtr> parseTokenList(TokenListType const& token_list);
-    static bool isExpressionToken(TokenKindType token_kind);
     static std::expected<NumberType, Error> convertTokenToNumber(TokenType const& token) noexcept;
 
     explicit ConfParser(TokenListType const& token_list);
