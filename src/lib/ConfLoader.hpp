@@ -11,12 +11,15 @@ public:
     using NodeType = typename ParserType::Node;
     using NodeKindType = typename ParserType::NodeKind;
     using PathType = std::filesystem::path;
+    using KeywordStatementType = typename ParserType::KeywordStatement;
     using TokenKindType = ConfParser::TokenKindType;
 
     enum class Error {
         FAILED_TO_LEX,
         FAILED_TO_PARSE,
+        FAILED_TO_RESOLVE_INCLUDE_PATH,
         NULL_AST_POINTER,
+        NULL_SELF_POINTER,
         CHILD_NOT_FOUND,
     };
 
@@ -29,8 +32,9 @@ public:
 
     std::expected<void, Error> visitIncludes(AstType& ast);
     std::expected<void, Error> visitSpliceIncludes(NodeType* parent, NodeType* me, AstType& splice);
+    std::expected<NodeType*, Error> findNearestRootAncestor(NodeType* me);
 
-    AstType const& ast();
+    AstType const& ast() const;
 
 private:
     AstType m_ast;

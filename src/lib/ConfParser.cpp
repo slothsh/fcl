@@ -2,7 +2,6 @@
 #include <expected>
 #include <ranges>
 #include <algorithm>
-#include <string>
 #include <cstddef>
 #include <utility>
 
@@ -36,13 +35,13 @@ namespace detail {
     }
 }
 
-std::optional<detail::NodePtr> ConfParser::parseTokenList(detail::TokenListType const& token_list) {
+std::optional<detail::NodePtr> ConfParser::parseTokenListWithFilePathRoot(detail::TokenListType const& token_list, std::string_view file_path) {
     using enum Error;
     using enum NodeKind;
 
     auto const push_child = [&](NodePtr& root, NodePtr& child) {
         auto const push_child_visitor = Visitors {
-            [&](RootBlock& root) {
+            [&](FilePathRootBlock& root) {
                 root.nodes.push_back(std::move(child));
             },
             [](auto&&){},
@@ -55,12 +54,59 @@ std::optional<detail::NodePtr> ConfParser::parseTokenList(detail::TokenListType 
 
     auto root = std::make_unique<Node>(
         Node {
-            RootBlock {
-                .kind = ROOT_BLOCK,
+            FilePathRootBlock {
+                .kind = FILE_PATH_ROOT_BLOCK,
                 .nodes = {},
+                .file_path = file_path,
+                .me = nullptr,
             }
         }
     );
+
+    std::get<FilePathRootBlock>(*root).me = root.get();
+
+    while (true) {
+        auto node = parser.parse(root);
+        if (!node) {
+            break;
+        }
+
+        push_child(root, node.value());
+    }
+
+    return root;
+}
+
+std::optional<detail::NodePtr> ConfParser::parseTokenListWithFilePathSubRoot(detail::TokenListType const& token_list, std::string_view file_path) {
+    using enum Error;
+    using enum NodeKind;
+
+    auto const push_child = [&](NodePtr& root, NodePtr& child) {
+        auto const push_child_visitor = Visitors {
+            [&](FilePathSubRootBlock& root) {
+                root.nodes.push_back(std::move(child));
+            },
+            [](auto&&){},
+        };
+
+        std::visit(push_child_visitor, *root);
+    };
+
+    auto parser = ConfParser{token_list};
+
+    auto root = std::make_unique<Node>(
+        Node {
+            FilePathSubRootBlock {
+                .kind = FILE_PATH_SUB_ROOT_BLOCK,
+                .nodes = {},
+                .file_path = file_path,
+                .me = nullptr,
+                .parent = nullptr,
+            }
+        }
+    );
+
+    std::get<FilePathSubRootBlock>(*root).me = root.get();
 
     while (true) {
         auto node = parser.parse(root);
@@ -77,7 +123,6 @@ std::optional<detail::NodePtr> ConfParser::parseTokenList(detail::TokenListType 
 ConfParser::ConfParser(detail::TokenListType const& token_list)
     : m_cursor{0}
     , m_token_list{token_list}
-    , m_root{nullptr}
 {}
 
 std::expected<detail::NodePtr, detail::Error> ConfParser::parse(detail::NodePtr& parent) {

@@ -1,3 +1,4 @@
+#include "Concepts.hpp"
 #include <concepts>
 #include <expected>
 #include <utility>
@@ -6,13 +7,30 @@
 namespace detail {
     template<typename T>
     concept HasNodeKind = requires (T t) {
-        { t.kind };
+        { t.kind } -> std::same_as<ConfLoader::NodeKindType&>;
+    };
+
+    template<typename T>
+    concept IsRootBlock = AnyOf<
+        T,
+        ConfLoader::ParserType::FilePathRootBlock,
+        ConfLoader::ParserType::FilePathSubRootBlock
+    >;
+
+    template<typename T>
+    concept HasParent = requires (T t) {
+        { t.parent } -> std::same_as<ConfLoader::NodeType*&>;
+    };
+
+    template<typename T>
+    concept HasChildren = requires (T t) {
+        { t.nodes } -> std::same_as<std::vector<ConfLoader::ParserType::NodePtr>&>;
     };
 }
 
 ConfLoader::ConfLoader(std::string_view config_file_path) noexcept
     : m_ast{nullptr}
-    , m_config_file_path{config_file_path.data()}
+    , m_config_file_path{std::filesystem::weakly_canonical(config_file_path)}
 {}
 
 std::expected<void, ConfLoader::Error> ConfLoader::load() {
@@ -23,7 +41,7 @@ std::expected<void, ConfLoader::Error> ConfLoader::load() {
         return std::unexpected(FAILED_TO_LEX);
     }
 
-    auto ast = ConfLoader::ParserType::parseTokenList(conf_lexer.value());
+    auto ast = ConfLoader::ParserType::parseTokenListWithFilePathRoot(conf_lexer.value(), m_config_file_path.c_str());
     if (!ast) {
         return std::unexpected(FAILED_TO_PARSE);
     }
@@ -44,7 +62,8 @@ std::expected<void, ConfLoader::Error> ConfLoader::visitIncludes(ConfLoader::Ast
     using enum ConfLoader::NodeKindType;
     using enum ConfLoader::TokenKindType;
     using KeywordStatement = ConfLoader::ParserType::KeywordStatement;
-    using RootBlock = ConfLoader::ParserType::RootBlock;
+    using FilePathRootBlock = ConfLoader::ParserType::FilePathRootBlock;
+    using FilePathSubRootBlock = ConfLoader::ParserType::FilePathSubRootBlock;
     using NamedBlock = ConfLoader::ParserType::NamedBlock;
     using StringExpression = ConfLoader::ParserType::StringExpression;
     using PathExpression = ConfLoader::ParserType::PathExpression;
@@ -59,15 +78,39 @@ std::expected<void, ConfLoader::Error> ConfLoader::visitIncludes(ConfLoader::Ast
                 return {};
             }
 
-            // TODO: handle argument unwrapping gracefully
-            std::string_view const include_path = std::get<PathExpression>(*keyword_statement.arguments.front()).token.data;
+            auto const nearest_root_ancestor = ConfLoader::findNearestRootAncestor(keyword_statement.me);
+            if (!nearest_root_ancestor) {
+                return std::unexpected(FAILED_TO_RESOLVE_INCLUDE_PATH);
+            }
 
-            auto conf_lexer = ConfLoader::LexerType::lexFile(include_path);
+            auto const parent_directory = std::visit(
+                Visitors {
+                    []<detail::IsRootBlock T>(T& root_block) -> std::expected<PathType, Error> {
+                        return root_block.file_path.parent_path();
+                    },
+                    []<detail::HasNodeKind T>(T&&) -> std::expected<PathType, Error> {
+                        return std::unexpected(FAILED_TO_RESOLVE_INCLUDE_PATH);
+                    },
+                },
+                *nearest_root_ancestor.value()
+            );
+
+            if (!parent_directory) {
+                return std::unexpected(FAILED_TO_RESOLVE_INCLUDE_PATH);
+            }
+
+            // TODO: handle argument unwrapping gracefully
+            // TODO: check if PathExpression is a relative path
+            auto const include_path = std::filesystem::weakly_canonical(
+                parent_directory.value() / std::get<PathExpression>(*keyword_statement.arguments.front()).token.data
+            );
+
+            auto conf_lexer = ConfLoader::LexerType::lexFile(include_path.c_str());
             if (!conf_lexer) {
                 return std::unexpected(FAILED_TO_LEX);
             }
 
-            auto include_ast = ConfLoader::ParserType::parseTokenList(conf_lexer.value());
+            auto include_ast = ConfLoader::ParserType::parseTokenListWithFilePathSubRoot(conf_lexer.value(), include_path.c_str());
             if (!include_ast) {
                 return std::unexpected(FAILED_TO_PARSE);
             }
@@ -81,8 +124,12 @@ std::expected<void, ConfLoader::Error> ConfLoader::visitIncludes(ConfLoader::Ast
         },
 
         [&]<detail::HasNodeKind T>(T& ast) -> std::expected<void, Error> {
-            constexpr bool has_children = std::same_as<T, typename ConfParser::RootBlock>
-                || std::same_as<T, typename ConfParser::NamedBlock>;
+            constexpr bool has_children = AnyOf<
+                T,
+                ConfParser::FilePathRootBlock,
+                ConfParser::FilePathSubRootBlock,
+                ConfParser::NamedBlock
+            >;
 
             if constexpr (has_children) {
                 for (auto& child : ast.nodes) {
@@ -105,35 +152,53 @@ std::expected<void, ConfLoader::Error> ConfLoader::visitSpliceIncludes(ConfLoade
     }
 
     auto const visitor = Visitors {
-        [this, &me, &splice]<detail::HasNodeKind T>(T& ast) -> std::expected<void, Error> {
-            constexpr bool has_children = std::same_as<T, typename ConfParser::RootBlock>
-                or std::same_as<T, typename ConfParser::NamedBlock>;
-
-            if constexpr (has_children) {
-                size_t position = -1;
-                for (auto& child : ast.nodes) {
-                    if (child.get() != me) {
-                        ++position;
-                        continue;
-                    }
+        [this, &me, &splice]<detail::HasChildren T>(T& ast) -> std::expected<void, Error> {
+            size_t position = -1;
+            for (auto& child : ast.nodes) {
+                if (child.get() != me) {
                     ++position;
-                    break;
+                    continue;
                 }
-
-                if (position == -1 || position >= ast.nodes.size()) {
-                    return std::unexpected(CHILD_NOT_FOUND);
-                }
-
-                std::swap(ast.nodes[position], splice);
+                ++position;
+                break;
             }
 
+            if (position == -1 || position >= ast.nodes.size()) {
+                return std::unexpected(CHILD_NOT_FOUND);
+            }
+
+            std::swap(ast.nodes[position], splice);
+
             return {};
-        }
+        },
+        [](auto&&) -> std::expected<void, Error> { return {}; }
     };
 
     return std::visit(visitor, *parent);
 }
 
-ConfLoader::AstType const& ConfLoader::ast() {
+std::expected<ConfLoader::NodeType*, ConfLoader::Error> ConfLoader::findNearestRootAncestor(ConfLoader::NodeType* me) {
+    using enum Error;
+    using enum NodeKindType;
+    using ExpectedType = std::expected<NodeType*, Error>;
+
+    if (!me) {
+        return std::unexpected(NULL_SELF_POINTER);
+    }
+
+    auto const visitor = Visitors {
+        [this]<detail::IsRootBlock T>(T& ast) -> ExpectedType {
+            return ast.me;
+        },
+
+        [this]<detail::HasParent T>(T& ast) -> ExpectedType requires (!detail::IsRootBlock<T>) {
+            return this->findNearestRootAncestor(ast.parent);
+        }
+    };
+
+    return std::visit(visitor, *me);
+}
+
+ConfLoader::AstType const& ConfLoader::ast() const {
     return m_ast;
 }

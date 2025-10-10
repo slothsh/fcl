@@ -15,8 +15,16 @@ void printAst(typename ConfParser::NodePtr const& node, int indent = 0) {
     if (!node) return;
 
     auto const visitor = Visitors {
-        [&](ConfParser::RootBlock const& node) {
+        [&](ConfParser::FilePathRootBlock const& node) {
             std::println("{:>{}}{}", " ", indent, node.kind);
+            std::println("{:>{}}{}", " ", indent, node.file_path.c_str());
+            for (auto const& child : node.nodes) {
+                printAst(child, indent + 4);
+            }
+        },
+        [&](ConfParser::FilePathSubRootBlock const& node) {
+            std::println("{:>{}}{}", " ", indent, node.kind);
+            std::println("{:>{}}{}", " ", indent, node.file_path.c_str());
             for (auto const& child : node.nodes) {
                 printAst(child, indent + 4);
             }
@@ -73,7 +81,7 @@ void includeFiles(typename ConfParser::NodePtr const& ast) {
         [&](ConfParser::KeywordStatement const& keyword_statement) {
         },
         [&]<HasNodeKind T>(T const& node) {
-            constexpr bool has_children = std::same_as<T, typename ConfParser::RootBlock>
+            constexpr bool has_children = std::same_as<T, typename ConfParser::FilePathRootBlock>
                 || std::same_as<T, typename ConfParser::NamedBlock>;
 
             if constexpr (has_children) {
@@ -90,7 +98,7 @@ void includeFiles(typename ConfParser::NodePtr const& ast) {
 TEST_CASE("Parse Simple Configuration File", "[confparser]") {
     SECTION("Top-Level Block Can Be Parsed") {
         auto token_list = ConfLexer::lexFile("./data/Config.conf");
-        auto ast = ConfParser::parseTokenList(token_list.value());
+        auto ast = ConfParser::parseTokenListWithFilePathRoot(token_list.value(), "./data/Config.conf");
 
         printAst(ast.value());
         

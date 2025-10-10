@@ -1,10 +1,5 @@
 # Test Data
-file(GLOB TEST_DATA "${CMAKE_CURRENT_SOURCE_DIR}/data/*.conf")
-
-foreach(file IN LISTS TEST_DATA)
-    get_filename_component(basename "${file}" NAME)
-    configure_file(${file} ${CMAKE_CURRENT_BINARY_DIR}/data/${basename} COPYONLY)
-endforeach()
+file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/data" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
 
 # Tests
 add_executable(ConfParser.test ConfParser.test.cpp)

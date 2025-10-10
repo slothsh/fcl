@@ -1,8 +1,10 @@
 #pragma once
 
 #include <expected>
+#include <filesystem>
 #include <memory>
 #include <optional>
+#include <string_view>
 #include <variant>
 
 class ConfParser {
@@ -11,8 +13,10 @@ public:
     using TokenKindType = typename ConfLexer::TokenKind;
     using TokenListType = typename ConfLexer::TokenListType;
     using NumberType = typename Conf::NumberType;
+    using PathType = std::filesystem::path;
 
-    struct RootBlock;
+    struct FilePathRootBlock;
+    struct FilePathSubRootBlock;
     struct NamedBlock;
     struct KeywordStatement;
     struct VariableAssignmentExpression;
@@ -23,7 +27,8 @@ public:
     struct ShellExpression;
 
     using Node = std::variant<
-        RootBlock,
+        FilePathRootBlock,
+        FilePathSubRootBlock,
         NamedBlock,
         KeywordStatement,
         VariableAssignmentExpression,
@@ -37,7 +42,8 @@ public:
     using NodePtr = std::unique_ptr<Node>;
 
     enum class NodeKind {
-        ROOT_BLOCK,
+        FILE_PATH_ROOT_BLOCK,
+        FILE_PATH_SUB_ROOT_BLOCK,
         NAMED_BLOCK,
         KEYWORD_STATEMENT,
         VARIABLE_ASSIGNMENT_EXPRESSION,
@@ -48,10 +54,19 @@ public:
         SHELL_EXPRESSION,
     };
 
-    struct RootBlock {
+    struct FilePathRootBlock {
         NodeKind kind;
         std::vector<NodePtr> nodes;
+        PathType file_path;
         Node* me;
+    };
+
+    struct FilePathSubRootBlock {
+        NodeKind kind;
+        std::vector<NodePtr> nodes;
+        PathType file_path;
+        Node* me;
+        Node* parent;
     };
 
     struct NamedBlock {
@@ -103,6 +118,7 @@ public:
 
     struct PathExpression {
         NodeKind kind;
+        PathType path;
         TokenType token;
         Node* me;
         Node* parent;
@@ -120,7 +136,8 @@ public:
         NUMBER_CONVERSION_ERROR,
     };
 
-    static std::optional<NodePtr> parseTokenList(TokenListType const& token_list);
+    static std::optional<NodePtr> parseTokenListWithFilePathRoot(TokenListType const& token_list, std::string_view file_path);
+    static std::optional<NodePtr> parseTokenListWithFilePathSubRoot(TokenListType const& token_list, std::string_view file_path);
     static std::expected<NumberType, Error> convertTokenToNumber(TokenType const& token) noexcept;
 
     explicit ConfParser(TokenListType const& token_list);
@@ -139,7 +156,6 @@ public:
 private:
     size_t m_cursor;
     TokenListType const& m_token_list;
-    NodePtr m_root;
 };
 
 
@@ -148,7 +164,8 @@ struct std::formatter<ConfParser::NodeKind> : std::formatter<std::string_view> {
     using enum ConfParser::NodeKind;
 static constexpr std::string_view to_string(ConfParser::NodeKind kind) {
         switch (kind) {
-            case ROOT_BLOCK:                     return "ROOT_BLOCK";
+            case FILE_PATH_ROOT_BLOCK:           return "FILE_PATH_ROOT_BLOCK";
+            case FILE_PATH_SUB_ROOT_BLOCK:       return "FILE_PATH_SUB_ROOT_BLOCK";
             case NAMED_BLOCK:                    return "NAMED_BLOCK";
             case KEYWORD_STATEMENT:              return "KEYWORD_STATEMENT";
             case VARIABLE_ASSIGNMENT_EXPRESSION: return "VARIABLE_ASSIGNMENT_EXPRESSION";
