@@ -1,30 +1,35 @@
 #pragma once
 
 #include <algorithm>
-#include <array>
 #include <cmath>
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
 #include <functional>
 #include <iterator>
 #include <optional>
 #include <ranges>
 #include <string>
+#include <vector>
 
 namespace Conf {
 
 using NumberType = double;
 
-template<typename T, typename R>
-concept HasNodeKind = requires (T t) {
-    { t.kind } -> std::same_as<R>;
+template<typename T>
+concept HasInnerType = requires (T t, typename T::InnerType inner) {
+    typename T::InnerType;
+    typename T::ReturnType;
+    { T::Index } -> std::same_as<size_t const&>;
+    { T::unwrap(inner) } -> std::same_as<typename T::ReturnType&>;
 };
 
-template<typename T, typename R>
-concept HasToken = requires (T t) {
-    { t.token } -> std::same_as<R>;
-};
+// TODO: concept for `Value`
+template<HasInnerType ArgName, typename Variant>
+auto& get_argument(std::vector<Variant> const& arguments) {
+    return ArgName::unwrap(std::get<typename ArgName::InnerType>(*arguments.at(ArgName::Index)));
+}
 
 // Binary Operator Strings
 inline constexpr std::string_view STRING_EQUALS              = "=";
@@ -185,3 +190,334 @@ std::optional<T> fromBinaryString(S const& number_string) noexcept {
 }
 
 } // END OF NAMESPACE `Conf::Number`
+
+namespace Conf::Language {
+
+// Common Types
+using PathType = std::filesystem::path;
+
+// Tokenizer
+
+enum class TokenKind {
+    UNKNOWN,
+    EQUALS,
+    WALRUS,
+    SEMI_COLON,
+    COMMA,
+    IDENTIFIER,
+    NUMBER_LITERAL_DECIMAL,
+    NUMBER_LITERAL_HEXADECIMAL,
+    NUMBER_LITERAL_BINARY,
+    NUMBER_LITERAL_OCTAL,
+    STRING_LITERAL,
+    PATH_LITERAL_ABSOLUTE,
+    PATH_LITERAL_RELATIVE,
+    SHELL_LITERAL,
+    OPEN_BRACE,
+    CLOSE_BRACE,
+    OPEN_DOUBLE_BRACE,
+    CLOSE_DOUBLE_BRACE,
+    OPEN_QUOTE,
+    CLOSE_QUOTE,
+    OPEN_DOUBLE_QUOTE,
+    CLOSE_DOUBLE_QUOTE,
+    TAB_FEED,
+    LINE_FEED,
+    VERTICAL_FEED,
+    SPACE,
+    COMMENT,
+    KEYWORD_INCLUDE,
+};
+
+struct Token {
+    std::string data;
+    TokenKind kind;
+    size_t position;
+    size_t length;
+};
+
+inline constexpr std::array KEYWORDS {
+    std::pair{ TokenKind::KEYWORD_INCLUDE, Conf::STRING_KEYWORD_INCLUDE },
+};
+
+// TODO: separate into open/close punctuators
+// These must be ordered from longest to shortest
+inline constexpr std::array PUNCTUATORS {
+    std::pair{ TokenKind::EQUALS, Conf::STRING_EQUALS },
+    std::pair{ TokenKind::WALRUS, Conf::STRING_WALRUS },
+    std::pair{ TokenKind::COMMA, Conf::STRING_COMMA },
+    std::pair{ TokenKind::SEMI_COLON, Conf::STRING_SEMI_COLON },
+    std::pair{ TokenKind::OPEN_BRACE, Conf::STRING_OPEN_BRACE },
+    std::pair{ TokenKind::CLOSE_BRACE, Conf::STRING_CLOSE_BRACE },
+};
+
+inline constexpr std::array STATEMENT_TERMINATORS {
+    std::pair{ TokenKind::SEMI_COLON, Conf::STRING_SEMI_COLON },
+};
+
+inline constexpr std::array STATEMENT_SEPARATORS {
+    std::pair{ TokenKind::COMMA, Conf::STRING_COMMA },
+};
+
+inline constexpr std::array STRING_LITERAL_OPEN_PUNCTUATORS {
+    std::pair{ TokenKind::OPEN_QUOTE, Conf::STRING_OPEN_QUOTE },
+    std::pair{ TokenKind::OPEN_DOUBLE_QUOTE, Conf::STRING_OPEN_DOUBLE_QUOTE },
+};
+
+inline constexpr std::array STRING_LITERAL_CLOSE_PUNCTUATORS {
+    std::pair{ TokenKind::CLOSE_QUOTE, Conf::STRING_CLOSE_QUOTE },
+    std::pair{ TokenKind::CLOSE_DOUBLE_QUOTE, Conf::STRING_CLOSE_DOUBLE_QUOTE },
+};
+
+inline constexpr std::array SHELL_LITERAL_OPEN_PUNCTUATORS {
+    std::pair{ TokenKind::OPEN_DOUBLE_BRACE, Conf::STRING_OPEN_DOUBLE_BRACE },
+};
+
+inline constexpr std::array SHELL_LITERAL_CLOSE_PUNCTUATORS {
+    std::pair{ TokenKind::CLOSE_DOUBLE_BRACE, Conf::STRING_CLOSE_DOUBLE_BRACE },
+};
+
+// Parser
+
+enum class NodeKind {
+    FILE_PATH_ROOT_BLOCK,
+    FILE_PATH_SUB_ROOT_BLOCK,
+    NAMED_BLOCK,
+    KEYWORD_STATEMENT,
+    VARIABLE_ASSIGNMENT_EXPRESSION,
+    CONSTANT_ASSIGNMENT_EXPRESSION,
+    STRING_EXPRESSION,
+    NUMBER_EXPRESSION,
+    PATH_EXPRESSION,
+    SHELL_EXPRESSION,
+};
+
+struct FilePathRootBlock;
+struct FilePathSubRootBlock;
+struct NamedBlock;
+struct KeywordStatement;
+struct VariableAssignmentExpression;
+struct ConstantAssignmentExpression;
+struct StringExpression;
+struct NumberExpression;
+struct PathExpression;
+struct ShellExpression;
+
+using Node = std::variant<
+    FilePathRootBlock,
+    FilePathSubRootBlock,
+    NamedBlock,
+    KeywordStatement,
+    VariableAssignmentExpression,
+    ConstantAssignmentExpression,
+    StringExpression,
+    NumberExpression,
+    PathExpression,
+    ShellExpression
+>;
+
+using NodePtr = std::unique_ptr<Node>;
+
+struct FilePathRootBlock {
+    NodeKind kind;
+    std::vector<NodePtr> nodes;
+    PathType file_path;
+    Node* me;
+};
+
+struct FilePathSubRootBlock {
+    NodeKind kind;
+    std::vector<NodePtr> nodes;
+    PathType file_path;
+    Node* me;
+    Node* parent;
+};
+
+struct NamedBlock {
+    NodeKind kind;
+    Token name;
+    std::vector<NodePtr> nodes;
+    Node* me;
+    Node* parent;
+};
+
+struct KeywordStatement {
+    NodeKind kind;
+    Token keyword;
+    std::vector<NodePtr> arguments;
+    Node* me;
+    Node* parent;
+};
+
+struct VariableAssignmentExpression {
+    NodeKind kind;
+    Token name;
+    NodePtr expression;
+    Node* me;
+    Node* parent;
+};
+
+struct ConstantAssignmentExpression {
+    NodeKind kind;
+    Token name;
+    NodePtr expression;
+    Node* me;
+    Node* parent;
+};
+
+struct StringExpression {
+    NodeKind kind;
+    Token token;
+    Node* me;
+    Node* parent;
+};
+
+struct NumberExpression {
+    NodeKind kind;
+    NumberType value;
+    Token token;
+    Node* me;
+    Node* parent;
+};
+
+struct PathExpression {
+    NodeKind kind;
+    PathType path;
+    Token token;
+    Node* me;
+    Node* parent;
+};
+
+struct ShellExpression {
+    NodeKind kind;
+    Token command;
+    Node* me;
+    Node* parent;
+};
+
+// Keyword Disambiguation
+
+struct KeywordSchema {
+    size_t arity;
+    std::array<std::array<TokenKind, 128>, 128> parameters;
+};
+
+struct KeywordIncludeFilePath {
+    using InnerType = PathExpression;
+    using ReturnType = decltype(PathExpression::token.data);
+    static constexpr size_t Index = 0;
+    static ReturnType& unwrap(InnerType& inner) { return inner.token.data; }
+};
+
+inline constexpr auto KEYWORD_INCLUDE_ARGS_SCHEMA = KeywordSchema {
+    .arity = 1,
+    .parameters = {
+        { TokenKind::PATH_LITERAL_ABSOLUTE, TokenKind::PATH_LITERAL_RELATIVE }
+    },
+};
+
+// Concepts
+
+template<typename T>
+concept HasNodeKind = requires (T t) {
+    { t.kind } -> std::same_as<NodeKind&>;
+};
+
+template<typename T>
+concept HasToken = requires (T t) {
+    { t.token } -> std::same_as<Token&>;
+};
+
+template<typename T>
+concept HasParent = requires (T t) {
+    { t.parent } -> std::same_as<Node*&>;
+};
+
+template<typename T>
+concept HasChildren = requires (T t) {
+    { t.nodes } -> std::same_as<std::vector<NodePtr>&>;
+};
+
+template<typename T>
+concept IsRootBlock = AnyOf<
+    T,
+    FilePathRootBlock,
+    FilePathSubRootBlock
+>;
+
+template<typename T>
+concept SimpleExpression = AnyOf<
+    T,
+    StringExpression,
+    PathExpression
+>;
+
+} // END OF NAMESPACE `Conf::Number`
+
+template <>
+struct std::formatter<Conf::Language::TokenKind> : std::formatter<std::string_view> {
+    using enum Conf::Language::TokenKind;
+
+    static constexpr std::string_view to_string(Conf::Language::TokenKind kind) {
+        switch (kind) {
+            case UNKNOWN:                    return "UNKNOWN";
+            case IDENTIFIER:                 return "IDENTIFIER";
+            case EQUALS:                     return "EQUALS";
+            case WALRUS:                     return "WALRUS";
+            case SEMI_COLON:                 return "SEMI_COLON";
+            case COMMA:                      return "COMMA";
+            case NUMBER_LITERAL_DECIMAL:     return "NUMBER_LITERAL_DECIMAL";
+            case NUMBER_LITERAL_HEXADECIMAL: return "NUMBER_LITERAL_HEXADECIMAL";
+            case NUMBER_LITERAL_BINARY:      return "NUMBER_LITERAL_BINARY";
+            case NUMBER_LITERAL_OCTAL:       return "NUMBER_LITERAL_OCTAL";
+            case STRING_LITERAL:             return "STRING_LITERAL";
+            case PATH_LITERAL_ABSOLUTE:      return "PATH_LITERAL_ABSOLUTE";
+            case PATH_LITERAL_RELATIVE:      return "PATH_LITERAL_RELATIVE";
+            case SHELL_LITERAL:              return "SHELL_LITERAL";
+            case COMMENT:                    return "COMMENT";
+            case OPEN_BRACE:                 return "OPEN_BRACE";
+            case CLOSE_BRACE:                return "CLOSE_BRACE";
+            case OPEN_DOUBLE_BRACE:          return "OPEN_DOUBLE_BRACE";
+            case CLOSE_DOUBLE_BRACE:         return "CLOSE_DOUBLE_BRACE";
+            case OPEN_QUOTE:                 return "OPEN_QUOTE";
+            case CLOSE_QUOTE:                return "CLOSE_QUOTE";
+            case OPEN_DOUBLE_QUOTE:          return "OPEN_DOUBLE_QUOTE";
+            case CLOSE_DOUBLE_QUOTE:         return "CLOSE_DOUBLE_QUOTE";
+            case TAB_FEED:                   return "TAB_FEED";
+            case LINE_FEED:                  return "LINE_FEED";
+            case VERTICAL_FEED:              return "VERTICAL_FEED";
+            case SPACE:                      return "SPACE";
+            case KEYWORD_INCLUDE:            return "KEYWORD_INCLUDE";
+        }
+    }
+
+    template <typename FormatContext>
+    auto format(Conf::Language::TokenKind kind, FormatContext& ctx) const {
+        return std::formatter<std::string_view>::format(to_string(kind), ctx);
+    }
+};
+
+template <>
+struct std::formatter<Conf::Language::NodeKind> : std::formatter<std::string_view> {
+    using enum Conf::Language::NodeKind;
+
+    static constexpr std::string_view to_string(Conf::Language::NodeKind kind) {
+        switch (kind) {
+            case FILE_PATH_ROOT_BLOCK:           return "FILE_PATH_ROOT_BLOCK";
+            case FILE_PATH_SUB_ROOT_BLOCK:       return "FILE_PATH_SUB_ROOT_BLOCK";
+            case NAMED_BLOCK:                    return "NAMED_BLOCK";
+            case KEYWORD_STATEMENT:              return "KEYWORD_STATEMENT";
+            case VARIABLE_ASSIGNMENT_EXPRESSION: return "VARIABLE_ASSIGNMENT_EXPRESSION";
+            case CONSTANT_ASSIGNMENT_EXPRESSION: return "CONSTANT_ASSIGNMENT_EXPRESSION";
+            case STRING_EXPRESSION:              return "STRING_EXPRESSION";
+            case NUMBER_EXPRESSION:              return "NUMBER_EXPRESSION";
+            case PATH_EXPRESSION:                return "PATH_EXPRESSION";
+            case SHELL_EXPRESSION:               return "SHELL_EXPRESSION";
+        }
+    }
+
+    template <typename FormatContext>
+    auto format(Conf::Language::NodeKind kind, FormatContext& ctx) const {
+        return std::formatter<std::string_view>::format(to_string(kind), ctx);
+    }
+};

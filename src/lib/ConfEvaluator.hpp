@@ -1,18 +1,12 @@
 #pragma once
 
 #include <expected>
-#include <filesystem>
 
 class ConfEvaluator {
 public:
-    using LexerType = ConfLexer;
-    using ParserType = ConfParser;
-    using AstType = typename ParserType::NodePtr;
-    using NodeType = typename ParserType::Node;
-    using NodeKindType = typename ParserType::NodeKind;
-    using PathType = std::filesystem::path;
-    using KeywordStatementType = typename ParserType::KeywordStatement;
-    using TokenKindType = ConfParser::TokenKindType;
+    using NodePtr = Conf::Language::NodePtr;
+    using Node = Conf::Language::Node;
+    using PathType = Conf::Language::PathType;
 
     enum class Error {
         FAILED_TO_ANALYZE,
@@ -32,13 +26,13 @@ public:
     std::expected<void, Error> analyzeAst() const;
     std::expected<void, Error> preProcess();
 
-    std::expected<void, Error> visitIncludes(AstType& ast);
-    std::expected<void, Error> visitSpliceIncludes(NodeType* parent, NodeType* me, AstType& splice);
-    std::expected<NodeType*, Error> findNearestRootAncestor(NodeType* me);
+    std::expected<void, Error> visitIncludes(NodePtr& ast);
+    std::expected<void, Error> visitSpliceIncludes(Node* parent, Node* me, NodePtr& splice);
+    std::expected<Node*, Error> findNearestRootAncestor(Node* me);
 
-    AstType const& ast() const;
+    NodePtr const& ast() const;
 
 private:
-    AstType m_ast;
+    NodePtr m_ast;
     PathType m_config_file_path;
 };

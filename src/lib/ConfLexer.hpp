@@ -2,7 +2,6 @@
 
 #include <array>
 #include <expected>
-#include <format>
 #include <fstream>
 #include <optional>
 #include <string>
@@ -11,91 +10,8 @@
 
 class ConfLexer {
 public:
-    enum class TokenKind {
-        UNKNOWN,
-        EQUALS,
-        WALRUS,
-        SEMI_COLON,
-        COMMA,
-        IDENTIFIER,
-        NUMBER_LITERAL_DECIMAL,
-        NUMBER_LITERAL_HEXADECIMAL,
-        NUMBER_LITERAL_BINARY,
-        NUMBER_LITERAL_OCTAL,
-        STRING_LITERAL,
-        PATH_LITERAL_ABSOLUTE,
-        PATH_LITERAL_RELATIVE,
-        SHELL_LITERAL,
-        OPEN_BRACE,
-        CLOSE_BRACE,
-        OPEN_DOUBLE_BRACE,
-        CLOSE_DOUBLE_BRACE,
-        OPEN_QUOTE,
-        CLOSE_QUOTE,
-        OPEN_DOUBLE_QUOTE,
-        CLOSE_DOUBLE_QUOTE,
-        TAB_FEED,
-        LINE_FEED,
-        VERTICAL_FEED,
-        SPACE,
-        COMMENT,
-        KEYWORD_INCLUDE,
-    };
-
-    static constexpr std::array KEYWORDS {
-        std::pair{ TokenKind::KEYWORD_INCLUDE, Conf::STRING_KEYWORD_INCLUDE },
-    };
-
-    // TODO: separate into open/close punctuators
-    // These must be ordered from longest to shortest
-    static constexpr std::array PUNCTUATORS {
-        std::pair{ TokenKind::EQUALS, Conf::STRING_EQUALS },
-        std::pair{ TokenKind::WALRUS, Conf::STRING_WALRUS },
-        std::pair{ TokenKind::COMMA, Conf::STRING_COMMA },
-        std::pair{ TokenKind::SEMI_COLON, Conf::STRING_SEMI_COLON },
-        std::pair{ TokenKind::OPEN_BRACE, Conf::STRING_OPEN_BRACE },
-        std::pair{ TokenKind::CLOSE_BRACE, Conf::STRING_CLOSE_BRACE },
-    };
-
-    static constexpr std::array STATEMENT_TERMINATORS {
-        std::pair{ TokenKind::SEMI_COLON, Conf::STRING_SEMI_COLON },
-    };
-
-    static constexpr std::array STATEMENT_SEPARATORS {
-        std::pair{ TokenKind::COMMA, Conf::STRING_COMMA },
-    };
-
-    static constexpr std::array STRING_LITERAL_OPEN_PUNCTUATORS {
-        std::pair{ TokenKind::OPEN_QUOTE, Conf::STRING_OPEN_QUOTE },
-        std::pair{ TokenKind::OPEN_DOUBLE_QUOTE, Conf::STRING_OPEN_DOUBLE_QUOTE },
-    };
-
-    static constexpr std::array STRING_LITERAL_CLOSE_PUNCTUATORS {
-        std::pair{ TokenKind::CLOSE_QUOTE, Conf::STRING_CLOSE_QUOTE },
-        std::pair{ TokenKind::CLOSE_DOUBLE_QUOTE, Conf::STRING_CLOSE_DOUBLE_QUOTE },
-    };
-
-    static constexpr std::array SHELL_LITERAL_OPEN_PUNCTUATORS {
-        std::pair{ TokenKind::OPEN_DOUBLE_BRACE, Conf::STRING_OPEN_DOUBLE_BRACE },
-    };
-
-    static constexpr std::array SHELL_LITERAL_CLOSE_PUNCTUATORS {
-        std::pair{ TokenKind::CLOSE_DOUBLE_BRACE, Conf::STRING_CLOSE_DOUBLE_BRACE },
-    };
-
-    struct Token {
-        std::string data;
-        TokenKind kind;
-        size_t position;
-        size_t length;
-    };
-
-    enum class Context {
-        NONE,
-        SYMBOL,
-        LITERAL,
-        PUNCTUATOR,
-    };
+    using Token = Conf::Language::Token;
+    using TokenKind = Conf::Language::TokenKind;
 
     enum class Error {
         FAILED_TO_OPEN_FILE,
@@ -197,48 +113,5 @@ public:
         }
 
         return punctuator_kind;
-    }
-};
-
-template <>
-struct std::formatter<ConfLexer::TokenKind> : std::formatter<std::string_view> {
-    using enum ConfLexer::TokenKind;
-
-    static constexpr std::string_view to_string(ConfLexer::TokenKind kind) {
-        switch (kind) {
-            case UNKNOWN:                    return "UNKNOWN";
-            case IDENTIFIER:                 return "IDENTIFIER";
-            case EQUALS:                     return "EQUALS";
-            case WALRUS:                     return "WALRUS";
-            case SEMI_COLON:                 return "SEMI_COLON";
-            case COMMA:                      return "COMMA";
-            case NUMBER_LITERAL_DECIMAL:     return "NUMBER_LITERAL_DECIMAL";
-            case NUMBER_LITERAL_HEXADECIMAL: return "NUMBER_LITERAL_HEXADECIMAL";
-            case NUMBER_LITERAL_BINARY:      return "NUMBER_LITERAL_BINARY";
-            case NUMBER_LITERAL_OCTAL:       return "NUMBER_LITERAL_OCTAL";
-            case STRING_LITERAL:             return "STRING_LITERAL";
-            case PATH_LITERAL_ABSOLUTE:      return "PATH_LITERAL_ABSOLUTE";
-            case PATH_LITERAL_RELATIVE:      return "PATH_LITERAL_RELATIVE";
-            case SHELL_LITERAL:              return "SHELL_LITERAL";
-            case COMMENT:                    return "COMMENT";
-            case OPEN_BRACE:                 return "OPEN_BRACE";
-            case CLOSE_BRACE:                return "CLOSE_BRACE";
-            case OPEN_DOUBLE_BRACE:          return "OPEN_DOUBLE_BRACE";
-            case CLOSE_DOUBLE_BRACE:         return "CLOSE_DOUBLE_BRACE";
-            case OPEN_QUOTE:                 return "OPEN_QUOTE";
-            case CLOSE_QUOTE:                return "CLOSE_QUOTE";
-            case OPEN_DOUBLE_QUOTE:          return "OPEN_DOUBLE_QUOTE";
-            case CLOSE_DOUBLE_QUOTE:         return "CLOSE_DOUBLE_QUOTE";
-            case TAB_FEED:                   return "TAB_FEED";
-            case LINE_FEED:                  return "LINE_FEED";
-            case VERTICAL_FEED:              return "VERTICAL_FEED";
-            case SPACE:                      return "SPACE";
-            case KEYWORD_INCLUDE:            return "KEYWORD_INCLUDE";
-        }
-    }
-
-    template <typename FormatContext>
-    auto format(ConfLexer::TokenKind kind, FormatContext& ctx) const {
-        return std::formatter<std::string_view>::format(to_string(kind), ctx);
     }
 };

@@ -5,40 +5,36 @@
 #include <cstddef>
 #include <utility>
 
-namespace detail {
-    using Node = typename ConfParser::Node;
-    using TokenListType = typename ConfParser::TokenListType;
-    using NodePtr = typename ConfParser::NodePtr;
-    using TokenType = typename ConfParser::TokenType;
-    using TokenKindType = typename ConfParser::TokenKindType;
-    using NumberType = typename ConfParser::NumberType;
-    using Error = typename ConfParser::Error;
+inline namespace {
+    using namespace Conf;
+    using namespace Conf::Language;
+    using Error = ConfParser::Error;
+    using enum TokenKind;
+    using enum NodeKind;
+    using enum Error;
 
     template<std::ranges::range R>
-    static bool rangeIsTokenKind(R&& range, TokenKindType token_kind) {
+    static bool rangeIsTokenKind(R&& range, TokenKind token_kind) {
         return std::ranges::find_if(
             range,
-            [&token_kind](TokenType const& t) {
+            [&token_kind](Token const& t) {
                 return t.kind == token_kind;
             }
         ) != range.end();
     }
 
     template<std::ranges::range R, size_t N>
-    static bool rangeTokenIsAnyOf(R&& range, std::array<TokenKindType, N> const& token_kinds) {
+    static bool rangeTokenIsAnyOf(R&& range, std::array<TokenKind, N> const& token_kinds) {
         return std::ranges::find_if(
             range,
-            [&token_kinds](TokenType const& t) {
+            [&token_kinds](Token const& t) {
                 return std::ranges::contains(token_kinds, t.kind);
             }
         ) != range.end();
     }
 }
 
-std::optional<detail::NodePtr> ConfParser::parseTokenListWithFilePathRoot(detail::TokenListType const& token_list, std::string_view file_path) {
-    using enum Error;
-    using enum NodeKind;
-
+std::optional<NodePtr> ConfParser::parseTokenListWithFilePathRoot(std::vector<Token> const& token_list, std::string_view file_path) {
     auto const push_child = [&](NodePtr& root, NodePtr& child) {
         auto const push_child_visitor = Visitors {
             [&](FilePathRootBlock& root) {
@@ -77,10 +73,7 @@ std::optional<detail::NodePtr> ConfParser::parseTokenListWithFilePathRoot(detail
     return root;
 }
 
-std::optional<detail::NodePtr> ConfParser::parseTokenListWithFilePathSubRoot(detail::TokenListType const& token_list, std::string_view file_path) {
-    using enum Error;
-    using enum NodeKind;
-
+std::optional<NodePtr> ConfParser::parseTokenListWithFilePathSubRoot(std::vector<Token> const& token_list, std::string_view file_path) {
     auto const push_child = [&](NodePtr& root, NodePtr& child) {
         auto const push_child_visitor = Visitors {
             [&](FilePathSubRootBlock& root) {
@@ -120,15 +113,12 @@ std::optional<detail::NodePtr> ConfParser::parseTokenListWithFilePathSubRoot(det
     return root;
 }
 
-ConfParser::ConfParser(detail::TokenListType const& token_list)
+ConfParser::ConfParser(std::vector<Token> const& token_list)
     : m_cursor{0}
     , m_token_list{token_list}
 {}
 
-std::expected<detail::NodePtr, detail::Error> ConfParser::parse(detail::NodePtr& parent) {
-    using enum Error;
-    using enum detail::TokenKindType;
-
+std::expected<NodePtr, Error> ConfParser::parse(NodePtr& parent) {
     size_t reset = m_cursor;
 
     auto const head = m_token_list
@@ -213,17 +203,14 @@ std::expected<detail::NodePtr, detail::Error> ConfParser::parse(detail::NodePtr&
 }
 
 
-std::optional<detail::NodePtr> ConfParser::takeNamedBlock(detail::TokenType const& token, detail::NodePtr& parent) {
-    using enum NodeKind;
-    using enum TokenKindType;
-
+std::optional<NodePtr> ConfParser::takeNamedBlock(Token const& token, NodePtr& parent) {
     size_t const reset = m_cursor;
 
     auto const block_start = m_token_list
         | std::views::drop(m_cursor++)
         | std::views::take(1);
 
-    if (!detail::rangeIsTokenKind(block_start, OPEN_BRACE)) {
+    if (!rangeIsTokenKind(block_start, OPEN_BRACE)) {
         m_cursor = reset;
         return std::nullopt;
     }
@@ -266,7 +253,7 @@ std::optional<detail::NodePtr> ConfParser::takeNamedBlock(detail::TokenType cons
         | std::views::drop(m_cursor++)
         | std::views::take(1);
 
-    if (!detail::rangeIsTokenKind(block_end, CLOSE_BRACE)) {
+    if (!rangeIsTokenKind(block_end, CLOSE_BRACE)) {
         m_cursor = reset;
         return std::nullopt;
     }
@@ -274,10 +261,7 @@ std::optional<detail::NodePtr> ConfParser::takeNamedBlock(detail::TokenType cons
     return root;
 }
 
-std::optional<detail::NodePtr> ConfParser::takeKeywordStatement(detail::TokenType const& token, detail::NodePtr& parent) {
-    using enum NodeKind;
-    using enum TokenKindType;
-
+std::optional<NodePtr> ConfParser::takeKeywordStatement(Token const& token, NodePtr& parent) {
     size_t const reset = m_cursor;
 
     auto const push_child = [&](NodePtr& root, NodePtr& child) {
@@ -312,7 +296,7 @@ std::optional<detail::NodePtr> ConfParser::takeKeywordStatement(detail::TokenTyp
             | std::views::drop(m_cursor)
             | std::views::take(1);
 
-        if (!node && detail::rangeIsTokenKind(separator_or_terminator_token, COMMA)) {
+        if (!node && rangeIsTokenKind(separator_or_terminator_token, COMMA)) {
             ++m_cursor;
             continue;
         }
@@ -328,7 +312,7 @@ std::optional<detail::NodePtr> ConfParser::takeKeywordStatement(detail::TokenTyp
         | std::views::drop(m_cursor++)
         | std::views::take(1);
 
-    if (!detail::rangeIsTokenKind(terminator_token, SEMI_COLON)) {
+    if (!rangeIsTokenKind(terminator_token, SEMI_COLON)) {
         m_cursor = reset;
         return std::nullopt;
     }
@@ -336,17 +320,14 @@ std::optional<detail::NodePtr> ConfParser::takeKeywordStatement(detail::TokenTyp
     return root;
 }
 
-std::optional<detail::NodePtr> ConfParser::takeVariableAssignmentExpression(TokenType const& token, detail::NodePtr& parent) {
-    using enum NodeKind;
-    using enum TokenKindType;
-
+std::optional<NodePtr> ConfParser::takeVariableAssignmentExpression(Token const& token, NodePtr& parent) {
     size_t const reset = m_cursor;
 
     auto const operator_token = m_token_list
         | std::views::drop(m_cursor++)
         | std::views::take(1);
 
-    if (!detail::rangeIsTokenKind(operator_token, EQUALS)) {
+    if (!rangeIsTokenKind(operator_token, EQUALS)) {
         m_cursor = reset;
         return std::nullopt;
     }
@@ -377,7 +358,7 @@ std::optional<detail::NodePtr> ConfParser::takeVariableAssignmentExpression(Toke
         | std::views::drop(m_cursor++)
         | std::views::take(1);
 
-    if (!detail::rangeIsTokenKind(terminator_token, SEMI_COLON)) {
+    if (!rangeIsTokenKind(terminator_token, SEMI_COLON)) {
         m_cursor = reset;
         return std::nullopt;
     }
@@ -385,17 +366,14 @@ std::optional<detail::NodePtr> ConfParser::takeVariableAssignmentExpression(Toke
     return root;
 }
 
-std::optional<detail::NodePtr> ConfParser::takeConstantAssignmentExpression(TokenType const& token, detail::NodePtr& parent) {
-    using enum NodeKind;
-    using enum TokenKindType;
-
+std::optional<NodePtr> ConfParser::takeConstantAssignmentExpression(Token const& token, NodePtr& parent) {
     size_t const reset = m_cursor;
 
     auto const operator_token = m_token_list
         | std::views::drop(m_cursor++)
         | std::views::take(1);
 
-    if (!detail::rangeIsTokenKind(operator_token, WALRUS)) {
+    if (!rangeIsTokenKind(operator_token, WALRUS)) {
         m_cursor = reset;
         return std::nullopt;
     }
@@ -426,7 +404,7 @@ std::optional<detail::NodePtr> ConfParser::takeConstantAssignmentExpression(Toke
         | std::views::drop(m_cursor++)
         | std::views::take(1);
 
-    if (!detail::rangeIsTokenKind(terminator_token, SEMI_COLON)) {
+    if (!rangeIsTokenKind(terminator_token, SEMI_COLON)) {
         m_cursor = reset;
         return std::nullopt;
     }
@@ -434,10 +412,7 @@ std::optional<detail::NodePtr> ConfParser::takeConstantAssignmentExpression(Toke
     return root;
 }
 
-std::optional<detail::NodePtr> ConfParser::takeStringExpression(detail::TokenType const& token, detail::NodePtr& parent) {
-    using enum NodeKind;
-    using enum TokenKindType;
-
+std::optional<NodePtr> ConfParser::takeStringExpression(Token const& token, NodePtr& parent) {
     if (token.kind != STRING_LITERAL) {
         return std::nullopt;
     }
@@ -458,10 +433,7 @@ std::optional<detail::NodePtr> ConfParser::takeStringExpression(detail::TokenTyp
     return root;
 }
 
-std::optional<detail::NodePtr> ConfParser::takeNumberExpression(detail::TokenType const& token, detail::NodePtr& parent) {
-    using enum NodeKind;
-    using enum TokenKindType;
-
+std::optional<NodePtr> ConfParser::takeNumberExpression(Token const& token, NodePtr& parent) {
     static constexpr std::array number_kinds {
         NUMBER_LITERAL_HEXADECIMAL,
         NUMBER_LITERAL_DECIMAL,
@@ -495,10 +467,7 @@ std::optional<detail::NodePtr> ConfParser::takeNumberExpression(detail::TokenTyp
     return root;
 }
 
-std::optional<detail::NodePtr> ConfParser::takePathExpression(detail::TokenType const& token, detail::NodePtr& parent) {
-    using enum NodeKind;
-    using enum TokenKindType;
-
+std::optional<NodePtr> ConfParser::takePathExpression(Token const& token, NodePtr& parent) {
     static constexpr std::array path_kinds {
         PATH_LITERAL_ABSOLUTE,
         PATH_LITERAL_RELATIVE,
@@ -524,10 +493,7 @@ std::optional<detail::NodePtr> ConfParser::takePathExpression(detail::TokenType 
     return root;
 }
 
-std::optional<detail::NodePtr> ConfParser::takeShellExpression(detail::TokenType const& token, detail::NodePtr& parent) {
-    using enum NodeKind;
-    using enum TokenKindType;
-
+std::optional<NodePtr> ConfParser::takeShellExpression(Token const& token, NodePtr& parent) {
     if (token.kind != SHELL_LITERAL) {
         return std::nullopt;
     }
@@ -548,11 +514,7 @@ std::optional<detail::NodePtr> ConfParser::takeShellExpression(detail::TokenType
     return root;
 }
 
-std::expected<detail::NumberType, detail::Error> ConfParser::convertTokenToNumber(detail::TokenType const& token) noexcept {
-    using enum Error;
-    using namespace Conf;
-    using enum TokenKindType;
-
+std::expected<NumberType, Error> ConfParser::convertTokenToNumber(Token const& token) noexcept {
     switch (token.kind) {
         case NUMBER_LITERAL_HEXADECIMAL: {
             auto const number = Number::fromHexadecimalString<NumberType>(token.data);

@@ -1,6 +1,9 @@
 #include <catch2/catch_test_macros.hpp>
 #include <print>
 
+using namespace Conf;
+using namespace Conf::Language;
+
 TEST_CASE("Lex Simple Configuration File", "[conflexer]") {
     SECTION("Top-Level Block Can Be Lexed") {
         auto token_list = ConfLexer::lexFile("./data/Config.conf");

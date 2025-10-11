@@ -1,5 +1,4 @@
 #include <algorithm>
-#include <ranges>
 #include <cstddef>
 #include <expected>
 #include <vector>
@@ -7,7 +6,13 @@
 #define FORWARD_VISITOR(member_function) \
     [](std::remove_cvref_t<std::tuple_element_t<0, typename FunctionTraits<decltype(member_function)>::argument_types>> const& node) { return member_function(node); }
 
-namespace detail {
+inline namespace {
+    using namespace Conf;
+    using namespace Conf::Language;
+    using Error = ConfAnalyzer::Error;
+    using enum Error;
+    using enum TokenKind;
+
     static constexpr auto ANALYZER_VISITOR = Visitors {
         FORWARD_VISITOR(ConfAnalyzer::visitFilePathRootBlock),
         FORWARD_VISITOR(ConfAnalyzer::visitFilePathSubRootBlock),
@@ -22,23 +27,21 @@ namespace detail {
     };
 }
 
-ConfAnalyzer::ConfAnalyzer(ConfAnalyzer::AstType const& ast)
+ConfAnalyzer::ConfAnalyzer(NodePtr const& ast)
     : m_ast{ast}
 {}
 
 std::expected<void, ConfAnalyzer::Error> ConfAnalyzer::analyze() const noexcept {
-    return std::visit(detail::ANALYZER_VISITOR, *m_ast);
+    return std::visit(ANALYZER_VISITOR, *m_ast);
 }
 
-std::expected<void, ConfAnalyzer::Error> ConfAnalyzer::visitFilePathRootBlock(ConfAnalyzer::FilePathRootBlock const& node) noexcept {
-    using enum ConfAnalyzer::Error;
-
+std::expected<void, ConfAnalyzer::Error> ConfAnalyzer::visitFilePathRootBlock(FilePathRootBlock const& node) noexcept {
     if (!node.file_path.is_absolute()) {
         return std::unexpected(FILE_PATH_NOT_ABSOLUTE);
     }
 
     for (auto const& child : node.nodes) {
-        auto const child_result = std::visit(detail::ANALYZER_VISITOR, *child);
+        auto const child_result = std::visit(ANALYZER_VISITOR, *child);
         if (!child_result) {
             return child_result;
         }
@@ -47,15 +50,13 @@ std::expected<void, ConfAnalyzer::Error> ConfAnalyzer::visitFilePathRootBlock(Co
     return {};
 }
 
-std::expected<void, ConfAnalyzer::Error> ConfAnalyzer::visitFilePathSubRootBlock(ConfAnalyzer::FilePathSubRootBlock const& node) noexcept {
-    using enum ConfAnalyzer::Error;
-
+std::expected<void, ConfAnalyzer::Error> ConfAnalyzer::visitFilePathSubRootBlock(FilePathSubRootBlock const& node) noexcept {
     if (!node.file_path.is_absolute()) {
         return std::unexpected(FILE_PATH_NOT_ABSOLUTE);
     }
 
     for (auto const& child : node.nodes) {
-        auto const child_result = std::visit(detail::ANALYZER_VISITOR, *child);
+        auto const child_result = std::visit(ANALYZER_VISITOR, *child);
         if (!child_result) {
             return child_result;
         }
@@ -64,9 +65,9 @@ std::expected<void, ConfAnalyzer::Error> ConfAnalyzer::visitFilePathSubRootBlock
     return {};
 }
 
-std::expected<void, ConfAnalyzer::Error> ConfAnalyzer::visitNamedBlock(ConfAnalyzer::NamedBlock const& node) noexcept {
+std::expected<void, ConfAnalyzer::Error> ConfAnalyzer::visitNamedBlock(NamedBlock const& node) noexcept {
     for (auto const& child : node.nodes) {
-        auto const child_result = std::visit(detail::ANALYZER_VISITOR, *child);
+        auto const child_result = std::visit(ANALYZER_VISITOR, *child);
         if (!child_result) {
             return child_result;
         }
@@ -75,13 +76,10 @@ std::expected<void, ConfAnalyzer::Error> ConfAnalyzer::visitNamedBlock(ConfAnaly
     return {};
 }
 
-std::expected<void, ConfAnalyzer::Error> ConfAnalyzer::visitKeywordStatement(ConfAnalyzer::KeywordStatement const& node) noexcept {
-    using enum Error;
-    using enum ConfAnalyzer::TokenKind;
-
+std::expected<void, ConfAnalyzer::Error> ConfAnalyzer::visitKeywordStatement(KeywordStatement const& node) noexcept {
     switch (node.keyword.kind) {
         case KEYWORD_INCLUDE: {
-            return ConfAnalyzer::typeCheckFunctionArguments(node.arguments, ConfAnalyzer::KEYWORD_INCLUDE_ARGS_SCHEMA);
+            return ConfAnalyzer::typeCheckFunctionArguments(node.arguments, KEYWORD_INCLUDE_ARGS_SCHEMA);
         } break;
 
         default: {
@@ -92,40 +90,39 @@ std::expected<void, ConfAnalyzer::Error> ConfAnalyzer::visitKeywordStatement(Con
     return {};
 }
 
-std::expected<void, ConfAnalyzer::Error> ConfAnalyzer::visitVariableAssignmentExpression(ConfAnalyzer::VariableAssignmentExpression const& node) noexcept {
+std::expected<void, ConfAnalyzer::Error> ConfAnalyzer::visitVariableAssignmentExpression(VariableAssignmentExpression const& node) noexcept {
     WARN("not implemented");
     return {};
 }
 
-std::expected<void, ConfAnalyzer::Error> ConfAnalyzer::visitConstantAssignmentExpression(ConfAnalyzer::ConstantAssignmentExpression const& node) noexcept {
+std::expected<void, ConfAnalyzer::Error> ConfAnalyzer::visitConstantAssignmentExpression(ConstantAssignmentExpression const& node) noexcept {
     WARN("not implemented");
     return {};
 }
 
-std::expected<void, ConfAnalyzer::Error> ConfAnalyzer::visitStringExpression(ConfAnalyzer::StringExpression const& node) noexcept {
+std::expected<void, ConfAnalyzer::Error> ConfAnalyzer::visitStringExpression(StringExpression const& node) noexcept {
     WARN("not implemented");
     return {};
 }
 
-std::expected<void, ConfAnalyzer::Error> ConfAnalyzer::visitNumberExpression(ConfAnalyzer::NumberExpression const& node) noexcept {
+std::expected<void, ConfAnalyzer::Error> ConfAnalyzer::visitNumberExpression(NumberExpression const& node) noexcept {
     WARN("not implemented");
     return {};
 }
 
-std::expected<void, ConfAnalyzer::Error> ConfAnalyzer::visitPathExpression(ConfAnalyzer::PathExpression const& node) noexcept {
+std::expected<void, ConfAnalyzer::Error> ConfAnalyzer::visitPathExpression(PathExpression const& node) noexcept {
     WARN("not implemented");
     return {};
 }
 
-std::expected<void, ConfAnalyzer::Error> ConfAnalyzer::visitShellExpression(ConfAnalyzer::ShellExpression const& node) noexcept {
+std::expected<void, ConfAnalyzer::Error> ConfAnalyzer::visitShellExpression(ShellExpression const& node) noexcept {
     WARN("not implemented");
     return {};
 }
 
 
-std::expected<void, ConfAnalyzer::Error> ConfAnalyzer::typeCheckFunctionArguments(std::vector<ConfAnalyzer::AstType> const& argument_nodes, ConfAnalyzer::KeywordSchema const& schema) noexcept {
-    using enum Error;
-    using TokenKindResult = std::expected<ConfAnalyzer::TokenKind, Error>;
+std::expected<void, ConfAnalyzer::Error> ConfAnalyzer::typeCheckFunctionArguments(std::vector<NodePtr> const& argument_nodes, KeywordSchema const& schema) noexcept {
+    using TokenKindResult = std::expected<TokenKind, Error>;
 
     int const arity_diff = static_cast<int>(schema.arity) - static_cast<int>(argument_nodes.size());
     if (arity_diff != 0) {

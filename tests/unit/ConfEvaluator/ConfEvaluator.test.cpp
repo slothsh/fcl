@@ -2,37 +2,36 @@
 #include <print>
 #include <variant>
 
-template<typename T>
-concept SimpleExpression = std::same_as<T, ConfParser::StringExpression>
-    || std::same_as<T, ConfParser::PathExpression>;
+using namespace Conf;
+using namespace Conf::Language;
 
-void printAst(ConfEvaluator::AstType const& node, int indent = 0) {
+void printAst(NodePtr const& node, int indent = 0) {
     if (!node) return;
 
     std::println("{:>{}}me: {}", " ", indent, (void*)node.get());
     auto const visitor = Visitors {
-        [&](ConfParser::FilePathRootBlock const& node) {
+        [&](FilePathRootBlock const& node) {
             std::println("{:>{}}{}", " ", indent, node.kind);
             std::println("{:>{}}{}", " ", indent, node.file_path.c_str());
             for (auto const& child : node.nodes) {
                 printAst(child, indent + 4);
             }
         },
-        [&](ConfParser::FilePathSubRootBlock const& node) {
+        [&](FilePathSubRootBlock const& node) {
             std::println("{:>{}}{}", " ", indent, node.kind);
             std::println("{:>{}}{}", " ", indent, node.file_path.c_str());
             for (auto const& child : node.nodes) {
                 printAst(child, indent + 4);
             }
         },
-        [&](ConfParser::NamedBlock const& node) {
+        [&](NamedBlock const& node) {
             std::println("{:>{}}{}: {}", " ", indent, node.kind, node.name.data);
             std::println("{:>{}}parent: {}", " ", indent, (void*)node.parent);
             for (auto const& child : node.nodes) {
                 printAst(child, indent + 4);
             }
         },
-        [&](ConfParser::KeywordStatement const& node) {
+        [&](KeywordStatement const& node) {
             std::println("{:>{}}{}", " ", indent, node.kind);
             std::println("{:>{}}{}", " ", indent, node.keyword.data);
             std::println("{:>{}}parent: {}", " ", indent, (void*)node.parent);
@@ -40,24 +39,24 @@ void printAst(ConfEvaluator::AstType const& node, int indent = 0) {
                 printAst(child, indent + 4);
             }
         },
-        [&](ConfParser::VariableAssignmentExpression const& node) {
+        [&](VariableAssignmentExpression const& node) {
             std::println("{:>{}}{}", " ", indent, node.kind);
             std::println("{:>{}}{}", " ", indent, node.name.data);
             std::println("{:>{}}parent: {}", " ", indent, (void*)node.parent);
             printAst(node.expression, indent + 4);
         },
-        [&](ConfParser::ConstantAssignmentExpression const& node) {
+        [&](ConstantAssignmentExpression const& node) {
             std::println("{:>{}}{}", " ", indent, node.kind);
             std::println("{:>{}}{}", " ", indent, node.name.data);
             std::println("{:>{}}parent: {}", " ", indent, (void*)node.parent);
             printAst(node.expression, indent + 4);
         },
-        [&](ConfParser::ShellExpression const& node) {
+        [&](ShellExpression const& node) {
             std::println("{:>{}}{}", " ", indent, node.kind);
             std::println("{:>{}}{}", " ", indent, node.command.data);
             std::println("{:>{}}parent: {}", " ", indent, (void*)node.parent);
         },
-        [&](ConfParser::NumberExpression const& node) {
+        [&](NumberExpression const& node) {
             std::println("{:>{}}{}", " ", indent, node.kind);
             std::println("{:>{}}{}", " ", indent, node.value);
             std::println("{:>{}}{}", " ", indent, node.token.data);
