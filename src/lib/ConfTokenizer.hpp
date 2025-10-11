@@ -21,8 +21,8 @@ public:
     using TokenListType = std::vector<Token>;
     using ExpectedType = std::expected<TokenListType, Error>;
 
-    static ExpectedType lexFile(std::string_view input_file_path);
-    static ExpectedType lexInputFileStream(std::ifstream& input_file);
+    static ExpectedType tokenizeFile(std::string_view input_file_path);
+    static ExpectedType tokenizeInputFileStream(std::ifstream& input_file);
 
     static std::optional<Error> pushToken(Token&& token, TokenListType& ast);
     static std::optional<std::string_view> peekTokenKind(std::ifstream& stream, TokenKind token_kind);

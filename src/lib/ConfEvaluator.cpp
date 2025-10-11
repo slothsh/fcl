@@ -15,12 +15,12 @@ ConfEvaluator::ConfEvaluator(std::string_view config_file_path) noexcept
 {}
 
 std::expected<void, Error> ConfEvaluator::load() {
-    auto conf_lexer = ConfTokenizer::lexFile(m_config_file_path.c_str());
-    if (!conf_lexer) {
-        return std::unexpected(FAILED_TO_LEX);
+    auto conf_tokenizer = ConfTokenizer::lexFile(m_config_file_path.c_str());
+    if (!conf_tokenizer) {
+        return std::unexpected(FAILED_TO_TOKENIZE);
     }
 
-    auto ast = ConfParser::parseTokenListWithFilePathRoot(conf_lexer.value(), m_config_file_path.c_str());
+    auto ast = ConfParser::parseTokenListWithFilePathRoot(conf_tokenizer.value(), m_config_file_path.c_str());
     if (!ast) {
         return std::unexpected(FAILED_TO_PARSE);
     }
@@ -83,12 +83,12 @@ std::expected<void, Error> ConfEvaluator::visitIncludes(NodePtr& ast) {
                 parent_directory.value() / path
             );
 
-            auto conf_lexer = ConfTokenizer::lexFile(include_path.c_str());
-            if (!conf_lexer) {
-                return std::unexpected(FAILED_TO_LEX);
+            auto conf_tokenizer = ConfTokenizer::lexFile(include_path.c_str());
+            if (!conf_tokenizer) {
+                return std::unexpected(FAILED_TO_TOKENIZE);
             }
 
-            auto include_ast = ConfParser::parseTokenListWithFilePathSubRoot(conf_lexer.value(), include_path.c_str());
+            auto include_ast = ConfParser::parseTokenListWithFilePathSubRoot(conf_tokenizer.value(), include_path.c_str());
             if (!include_ast) {
                 return std::unexpected(FAILED_TO_PARSE);
             }

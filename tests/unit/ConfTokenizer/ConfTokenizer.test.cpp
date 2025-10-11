@@ -4,9 +4,9 @@
 using namespace Conf;
 using namespace Conf::Language;
 
-TEST_CASE("Lex Simple Configuration File", "[conflexer]") {
-    SECTION("Top-Level Block Can Be Lexed") {
-        auto token_list = ConfTokenizer::lexFile("./data/Config.conf");
+TEST_CASE("Tokenize Simple Configuration File", "[conftokenizer]") {
+    SECTION("Top-Level Block Can Be Tokenized") {
+        auto token_list = ConfTokenizer::tokenizeFile("./data/Config.conf");
 
         for (auto const& token : token_list.value()) {
             std::println("{}: |{}|", token.kind, token.data);

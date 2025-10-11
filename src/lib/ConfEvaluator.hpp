@@ -10,7 +10,7 @@ public:
 
     enum class Error {
         FAILED_TO_ANALYZE,
-        FAILED_TO_LEX,
+        FAILED_TO_TOKENIZE,
         FAILED_TO_PARSE,
         FAILED_TO_RESOLVE_INCLUDE_PATH,
         NULL_AST_POINTER,

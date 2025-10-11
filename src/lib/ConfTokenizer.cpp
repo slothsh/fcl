@@ -28,7 +28,7 @@ inline namespace {
     }
 }
 
-ConfTokenizer::ExpectedType ConfTokenizer::lexFile(std::string_view input_file_path) {
+ConfTokenizer::ExpectedType ConfTokenizer::tokenizeFile(std::string_view input_file_path) {
     std::ifstream input_file(input_file_path.data());
     if (!input_file) {
         return std::unexpected(FAILED_TO_OPEN_FILE);
@@ -36,10 +36,10 @@ ConfTokenizer::ExpectedType ConfTokenizer::lexFile(std::string_view input_file_p
 
     input_file >> std::noskipws;
 
-    return ConfTokenizer::lexInputFileStream(input_file);
+    return ConfTokenizer::tokenizeInputFileStream(input_file);
 }
 
-ConfTokenizer::ExpectedType ConfTokenizer::lexInputFileStream(std::ifstream& input_file) {
+ConfTokenizer::ExpectedType ConfTokenizer::tokenizeInputFileStream(std::ifstream& input_file) {
     TokenListType token_list{};
 
     while (!input_file.eof()) {
