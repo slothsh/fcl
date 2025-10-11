@@ -2,6 +2,7 @@
 
 #include "../../Macros.hpp"
 #include "../../Types.hpp"
+#include "../../TypeTraits.hpp"
 #include "../../Concepts.hpp"
 #include "../../ConfigValue.hpp"
 #include "../../UserConfiguration.hpp"
@@ -13,4 +14,5 @@
 #include "../../Conf.hpp"
 #include "../../ConfLexer.hpp"
 #include "../../ConfParser.hpp"
+#include "../../ConfAnalyzer.hpp"
 #include "../../ConfLoader.hpp"

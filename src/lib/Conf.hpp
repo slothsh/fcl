@@ -14,6 +14,16 @@ namespace Conf {
 
 using NumberType = double;
 
+template<typename T, typename R>
+concept HasNodeKind = requires (T t) {
+    { t.kind } -> std::same_as<R>;
+};
+
+template<typename T, typename R>
+concept HasToken = requires (T t) {
+    { t.token } -> std::same_as<R>;
+};
+
 // Binary Operator Strings
 inline constexpr std::string_view STRING_EQUALS              = "=";
 inline constexpr std::string_view STRING_WALRUS              = ":=";

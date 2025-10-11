@@ -48,9 +48,20 @@ std::expected<void, ConfLoader::Error> ConfLoader::load() {
 
     std::swap(m_ast, ast.value());
 
-    auto const result = this->preProcess();
+    return this->analyzeAst()
+        .and_then([this](){ return this->preProcess(); });
+}
 
-    return result;
+std::expected<void, ConfLoader::Error> ConfLoader::analyzeAst() const {
+    using enum Error;
+
+    auto const analyzer = ConfAnalyzer{m_ast};
+
+    return analyzer
+        .analyze()
+        .transform_error([](auto const& error) {
+            return FAILED_TO_ANALYZE;
+        });
 }
 
 std::expected<void, ConfLoader::Error> ConfLoader::preProcess() {

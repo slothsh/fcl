@@ -10,6 +10,7 @@ add_library(
         UserConfiguration.cpp
         ConfLexer.cpp
         ConfParser.cpp
+        ConfAnalyzer.cpp
         ConfLoader.cpp
 )
 
@@ -18,6 +19,7 @@ target_precompile_headers(
     PRIVATE
         Macros.hpp
         Types.hpp
+        TypeTraits.hpp
         Concepts.hpp
         ConfigValue.hpp
         CommandLineArgumentParser.hpp
@@ -29,6 +31,7 @@ target_precompile_headers(
         Conf.hpp
         ConfLexer.hpp
         ConfParser.hpp
+        ConfAnalyzer.hpp
         ConfLoader.hpp
 )
 

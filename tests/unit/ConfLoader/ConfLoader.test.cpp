@@ -78,6 +78,10 @@ TEST_CASE("Load Simple Configuration File", "[confloader]") {
         auto const result = conf_loader.load();
 
         printAst(conf_loader.ast());
+
+        if (!result) {
+            FAIL("Loading config @ ./data/Config.conf failed");
+        }
         
         REQUIRE(1 == 1);
     }

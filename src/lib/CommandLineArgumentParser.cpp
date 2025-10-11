@@ -222,7 +222,7 @@ detail::CommandLineArgumentsType CommandLineArgumentParser::parseArguments(int a
                 });
             }
         } else {
-            TODO(std::format("not implemented: unknown argument: {}", item));
+            TODO("not implemented: unknown argument: {}", item);
         }
     }
 

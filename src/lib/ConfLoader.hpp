@@ -15,6 +15,7 @@ public:
     using TokenKindType = ConfParser::TokenKindType;
 
     enum class Error {
+        FAILED_TO_ANALYZE,
         FAILED_TO_LEX,
         FAILED_TO_PARSE,
         FAILED_TO_RESOLVE_INCLUDE_PATH,
@@ -28,6 +29,7 @@ public:
     explicit ConfLoader(std::string_view config_file_path) noexcept;
 
     std::expected<void, Error> load();
+    std::expected<void, Error> analyzeAst() const;
     std::expected<void, Error> preProcess();
 
     std::expected<void, Error> visitIncludes(AstType& ast);
