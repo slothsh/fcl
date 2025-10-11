@@ -6,7 +6,7 @@ template<typename T>
 concept SimpleExpression = std::same_as<T, ConfParser::StringExpression>
     || std::same_as<T, ConfParser::PathExpression>;
 
-void printAst(ConfLoader::AstType const& node, int indent = 0) {
+void printAst(ConfEvaluator::AstType const& node, int indent = 0) {
     if (!node) return;
 
     std::println("{:>{}}me: {}", " ", indent, (void*)node.get());
@@ -74,7 +74,7 @@ void printAst(ConfLoader::AstType const& node, int indent = 0) {
 
 TEST_CASE("Load Simple Configuration File", "[confloader]") {
     SECTION("Conf file can be loaded") {
-        auto conf_loader = ConfLoader{"./data/Config.conf"};
+        auto conf_loader = ConfEvaluator{"./data/Config.conf"};
         auto const result = conf_loader.load();
 
         printAst(conf_loader.ast());

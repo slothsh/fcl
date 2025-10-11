@@ -3,7 +3,7 @@
 #include <expected>
 #include <filesystem>
 
-class ConfLoader {
+class ConfEvaluator {
 public:
     using LexerType = ConfLexer;
     using ParserType = ConfParser;
@@ -24,9 +24,9 @@ public:
         CHILD_NOT_FOUND,
     };
 
-    ConfLoader() = delete;
+    ConfEvaluator() = delete;
 
-    explicit ConfLoader(std::string_view config_file_path) noexcept;
+    explicit ConfEvaluator(std::string_view config_file_path) noexcept;
 
     std::expected<void, Error> load();
     std::expected<void, Error> analyzeAst() const;

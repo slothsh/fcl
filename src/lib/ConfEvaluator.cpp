@@ -7,41 +7,41 @@
 namespace detail {
     template<typename T>
     concept HasNodeKind = requires (T t) {
-        { t.kind } -> std::same_as<ConfLoader::NodeKindType&>;
+        { t.kind } -> std::same_as<ConfEvaluator::NodeKindType&>;
     };
 
     template<typename T>
     concept IsRootBlock = AnyOf<
         T,
-        ConfLoader::ParserType::FilePathRootBlock,
-        ConfLoader::ParserType::FilePathSubRootBlock
+        ConfEvaluator::ParserType::FilePathRootBlock,
+        ConfEvaluator::ParserType::FilePathSubRootBlock
     >;
 
     template<typename T>
     concept HasParent = requires (T t) {
-        { t.parent } -> std::same_as<ConfLoader::NodeType*&>;
+        { t.parent } -> std::same_as<ConfEvaluator::NodeType*&>;
     };
 
     template<typename T>
     concept HasChildren = requires (T t) {
-        { t.nodes } -> std::same_as<std::vector<ConfLoader::ParserType::NodePtr>&>;
+        { t.nodes } -> std::same_as<std::vector<ConfEvaluator::ParserType::NodePtr>&>;
     };
 }
 
-ConfLoader::ConfLoader(std::string_view config_file_path) noexcept
+ConfEvaluator::ConfEvaluator(std::string_view config_file_path) noexcept
     : m_ast{nullptr}
     , m_config_file_path{std::filesystem::weakly_canonical(config_file_path)}
 {}
 
-std::expected<void, ConfLoader::Error> ConfLoader::load() {
+std::expected<void, ConfEvaluator::Error> ConfEvaluator::load() {
     using enum Error;
 
-    auto conf_lexer = ConfLoader::LexerType::lexFile(m_config_file_path.c_str());
+    auto conf_lexer = ConfEvaluator::LexerType::lexFile(m_config_file_path.c_str());
     if (!conf_lexer) {
         return std::unexpected(FAILED_TO_LEX);
     }
 
-    auto ast = ConfLoader::ParserType::parseTokenListWithFilePathRoot(conf_lexer.value(), m_config_file_path.c_str());
+    auto ast = ConfEvaluator::ParserType::parseTokenListWithFilePathRoot(conf_lexer.value(), m_config_file_path.c_str());
     if (!ast) {
         return std::unexpected(FAILED_TO_PARSE);
     }
@@ -52,7 +52,7 @@ std::expected<void, ConfLoader::Error> ConfLoader::load() {
         .and_then([this](){ return this->preProcess(); });
 }
 
-std::expected<void, ConfLoader::Error> ConfLoader::analyzeAst() const {
+std::expected<void, ConfEvaluator::Error> ConfEvaluator::analyzeAst() const {
     using enum Error;
 
     auto const analyzer = ConfAnalyzer{m_ast};
@@ -64,20 +64,20 @@ std::expected<void, ConfLoader::Error> ConfLoader::analyzeAst() const {
         });
 }
 
-std::expected<void, ConfLoader::Error> ConfLoader::preProcess() {
+std::expected<void, ConfEvaluator::Error> ConfEvaluator::preProcess() {
     return this->visitIncludes(m_ast);
 }
 
-std::expected<void, ConfLoader::Error> ConfLoader::visitIncludes(ConfLoader::AstType& ast) {
+std::expected<void, ConfEvaluator::Error> ConfEvaluator::visitIncludes(ConfEvaluator::AstType& ast) {
     using enum Error;
-    using enum ConfLoader::NodeKindType;
-    using enum ConfLoader::TokenKindType;
-    using KeywordStatement = ConfLoader::ParserType::KeywordStatement;
-    using FilePathRootBlock = ConfLoader::ParserType::FilePathRootBlock;
-    using FilePathSubRootBlock = ConfLoader::ParserType::FilePathSubRootBlock;
-    using NamedBlock = ConfLoader::ParserType::NamedBlock;
-    using StringExpression = ConfLoader::ParserType::StringExpression;
-    using PathExpression = ConfLoader::ParserType::PathExpression;
+    using enum ConfEvaluator::NodeKindType;
+    using enum ConfEvaluator::TokenKindType;
+    using KeywordStatement = ConfEvaluator::ParserType::KeywordStatement;
+    using FilePathRootBlock = ConfEvaluator::ParserType::FilePathRootBlock;
+    using FilePathSubRootBlock = ConfEvaluator::ParserType::FilePathSubRootBlock;
+    using NamedBlock = ConfEvaluator::ParserType::NamedBlock;
+    using StringExpression = ConfEvaluator::ParserType::StringExpression;
+    using PathExpression = ConfEvaluator::ParserType::PathExpression;
 
     if (!ast) {
         return std::unexpected(NULL_AST_POINTER);
@@ -89,7 +89,7 @@ std::expected<void, ConfLoader::Error> ConfLoader::visitIncludes(ConfLoader::Ast
                 return {};
             }
 
-            auto const nearest_root_ancestor = ConfLoader::findNearestRootAncestor(keyword_statement.me);
+            auto const nearest_root_ancestor = ConfEvaluator::findNearestRootAncestor(keyword_statement.me);
             if (!nearest_root_ancestor) {
                 return std::unexpected(FAILED_TO_RESOLVE_INCLUDE_PATH);
             }
@@ -116,12 +116,12 @@ std::expected<void, ConfLoader::Error> ConfLoader::visitIncludes(ConfLoader::Ast
                 parent_directory.value() / std::get<PathExpression>(*keyword_statement.arguments.front()).token.data
             );
 
-            auto conf_lexer = ConfLoader::LexerType::lexFile(include_path.c_str());
+            auto conf_lexer = ConfEvaluator::LexerType::lexFile(include_path.c_str());
             if (!conf_lexer) {
                 return std::unexpected(FAILED_TO_LEX);
             }
 
-            auto include_ast = ConfLoader::ParserType::parseTokenListWithFilePathSubRoot(conf_lexer.value(), include_path.c_str());
+            auto include_ast = ConfEvaluator::ParserType::parseTokenListWithFilePathSubRoot(conf_lexer.value(), include_path.c_str());
             if (!include_ast) {
                 return std::unexpected(FAILED_TO_PARSE);
             }
@@ -155,7 +155,7 @@ std::expected<void, ConfLoader::Error> ConfLoader::visitIncludes(ConfLoader::Ast
     return std::visit(visitor, *ast);
 }
 
-std::expected<void, ConfLoader::Error> ConfLoader::visitSpliceIncludes(ConfLoader::NodeType* parent, ConfLoader::NodeType* me, ConfLoader::AstType& splice) {
+std::expected<void, ConfEvaluator::Error> ConfEvaluator::visitSpliceIncludes(ConfEvaluator::NodeType* parent, ConfEvaluator::NodeType* me, ConfEvaluator::AstType& splice) {
     using enum Error;
 
     if (!parent || !splice) {
@@ -188,7 +188,7 @@ std::expected<void, ConfLoader::Error> ConfLoader::visitSpliceIncludes(ConfLoade
     return std::visit(visitor, *parent);
 }
 
-std::expected<ConfLoader::NodeType*, ConfLoader::Error> ConfLoader::findNearestRootAncestor(ConfLoader::NodeType* me) {
+std::expected<ConfEvaluator::NodeType*, ConfEvaluator::Error> ConfEvaluator::findNearestRootAncestor(ConfEvaluator::NodeType* me) {
     using enum Error;
     using enum NodeKindType;
     using ExpectedType = std::expected<NodeType*, Error>;
@@ -210,6 +210,6 @@ std::expected<ConfLoader::NodeType*, ConfLoader::Error> ConfLoader::findNearestR
     return std::visit(visitor, *me);
 }
 
-ConfLoader::AstType const& ConfLoader::ast() const {
+ConfEvaluator::AstType const& ConfEvaluator::ast() const {
     return m_ast;
 }

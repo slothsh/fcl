@@ -11,7 +11,7 @@ add_library(
         ConfLexer.cpp
         ConfParser.cpp
         ConfAnalyzer.cpp
-        ConfLoader.cpp
+        ConfEvaluator.cpp
 )
 
 target_precompile_headers(
@@ -32,7 +32,7 @@ target_precompile_headers(
         ConfLexer.hpp
         ConfParser.hpp
         ConfAnalyzer.hpp
-        ConfLoader.hpp
+        ConfEvaluator.hpp
 )
 
 add_subdirectory(include/)
