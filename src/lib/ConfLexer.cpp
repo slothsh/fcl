@@ -10,6 +10,9 @@
 #include <string>
 #include <string_view>
 
+#define PUSH_TOKEN(token_list, token)                       \
+    ConfLexer::pushToken(std::move((token)), (token_list)); \
+
 inline namespace {
     using namespace Conf;
     using namespace Conf::Language;
@@ -24,9 +27,6 @@ inline namespace {
         };
     }
 }
-
-#define PUSH_TOKEN(token_list, token)                       \
-    ConfLexer::pushToken(std::move((token)), (token_list)); \
 
 ConfLexer::ExpectedType ConfLexer::lexFile(std::string_view input_file_path) {
     std::ifstream input_file(input_file_path.data());
