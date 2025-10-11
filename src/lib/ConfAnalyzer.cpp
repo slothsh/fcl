@@ -1,3 +1,5 @@
+#include <algorithm>
+#include <ranges>
 #include <cstddef>
 #include <expected>
 #include <vector>
@@ -79,7 +81,7 @@ std::expected<void, ConfAnalyzer::Error> ConfAnalyzer::visitKeywordStatement(Con
 
     switch (node.keyword.kind) {
         case KEYWORD_INCLUDE: {
-            return ConfAnalyzer::typeCheckFunctionArguments(node.arguments, {PATH_LITERAL_RELATIVE});
+            return ConfAnalyzer::typeCheckFunctionArguments(node.arguments, ConfAnalyzer::KEYWORD_INCLUDE_ARGS_SCHEMA);
         } break;
 
         default: {
@@ -121,30 +123,34 @@ std::expected<void, ConfAnalyzer::Error> ConfAnalyzer::visitShellExpression(Conf
 }
 
 
-std::expected<void, ConfAnalyzer::Error> ConfAnalyzer::typeCheckFunctionArguments(std::vector<ConfAnalyzer::AstType> const& arguments, std::initializer_list<ConfAnalyzer::TokenKind> argument_types) noexcept {
+std::expected<void, ConfAnalyzer::Error> ConfAnalyzer::typeCheckFunctionArguments(std::vector<ConfAnalyzer::AstType> const& arguments, ConfAnalyzer::KeywordSchema const& argument_types) noexcept {
     using enum Error;
+    using TokenKindResult = std::expected<ConfAnalyzer::TokenKind, Error>;
 
-    int const arity_diff = static_cast<int>(argument_types.size()) - static_cast<int>(arguments.size());
-    INFO("arity diff: {}", arity_diff);
+    int const arity_diff = static_cast<int>(argument_types.arity) - static_cast<int>(arguments.size());
     if (arity_diff != 0) {
         return std::unexpected(FUNCTION_ARITY_MISMATCH);
     }
 
     auto const visitor = Visitors {
-        [](StringExpression const& string_expression) -> std::expected<ConfAnalyzer::TokenKind, Error> { return string_expression.token.kind; },
-        [](NumberExpression const& number_expression) -> std::expected<ConfAnalyzer::TokenKind, Error> { return number_expression.token.kind; },
-        [](PathExpression const& path_expression)     -> std::expected<ConfAnalyzer::TokenKind, Error> { return path_expression.token.kind; },
-        [](ShellExpression const& shell_expression)   -> std::expected<ConfAnalyzer::TokenKind, Error> { return shell_expression.command.kind; },
-        [](auto const& node) -> std::expected<ConfAnalyzer::TokenKind, Error> { return std::unexpected(FUNCTION_INVALID_EXPRESSION); }
+        [](StringExpression const& string_expression) -> TokenKindResult { return string_expression.token.kind; },
+        [](NumberExpression const& number_expression) -> TokenKindResult { return number_expression.token.kind; },
+        [](PathExpression const& path_expression)     -> TokenKindResult { return path_expression.token.kind; },
+        [](ShellExpression const& shell_expression)   -> TokenKindResult { return shell_expression.command.kind; },
+        [](auto const&)                               -> TokenKindResult { return std::unexpected(FUNCTION_INVALID_EXPRESSION); }
     };
 
-    for (auto const& [argument, type] : std::views::zip(arguments, argument_types)) {
+    for (auto const& [argument, allowed_types] : std::views::zip(arguments, argument_types.parameters)) {
         auto const type_check_result = std::visit(visitor, *argument);
         if (!type_check_result) {
             return std::unexpected(type_check_result.error());
         }
 
-        if (type_check_result.value() != type) {
+        auto valid_argument = std::ranges::any_of(allowed_types, [argument = type_check_result.value()](auto const& parameter) {
+            return parameter == argument;
+        });
+
+        if (!valid_argument) {
             return std::unexpected(FUNCTION_ARGUMENT_TYPE_MISMATCH);
         }
     }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <expected>
 #include <vector>
 
@@ -21,11 +22,23 @@ public:
     using PathExpression = typename ConfParser::PathExpression;
     using ShellExpression = typename ConfParser::ShellExpression;
 
+    struct KeywordSchema {
+        size_t arity;
+        std::array<std::array<TokenKind, 128>, 128> parameters;
+    };
+
     enum class Error {
         FILE_PATH_NOT_ABSOLUTE,
         FUNCTION_ARITY_MISMATCH,
         FUNCTION_INVALID_EXPRESSION,
         FUNCTION_ARGUMENT_TYPE_MISMATCH,
+    };
+
+    inline static constexpr auto KEYWORD_INCLUDE_ARGS_SCHEMA = KeywordSchema {
+        .arity = 1,
+        .parameters = {
+            { TokenKind::PATH_LITERAL_ABSOLUTE, TokenKind::PATH_LITERAL_RELATIVE }
+        },
     };
 
     explicit ConfAnalyzer(AstType const& ast);
@@ -49,7 +62,7 @@ public:
     static std::expected<void, Error> visitPathExpression(PathExpression const& node) noexcept;
     static std::expected<void, Error> visitShellExpression(ShellExpression const& node) noexcept;
 
-    static std::expected<void, Error> typeCheckFunctionArguments(std::vector<AstType> const& arguments, std::initializer_list<TokenKind> argument_types) noexcept;
+    static std::expected<void, Error> typeCheckFunctionArguments(std::vector<AstType> const& arguments, KeywordSchema const& argument_types) noexcept;
 
 private:
     AstType const& m_ast;
