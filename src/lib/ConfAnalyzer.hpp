@@ -62,7 +62,7 @@ public:
     static std::expected<void, Error> visitPathExpression(PathExpression const& node) noexcept;
     static std::expected<void, Error> visitShellExpression(ShellExpression const& node) noexcept;
 
-    static std::expected<void, Error> typeCheckFunctionArguments(std::vector<AstType> const& arguments, KeywordSchema const& argument_types) noexcept;
+    static std::expected<void, Error> typeCheckFunctionArguments(std::vector<AstType> const& arguments, KeywordSchema const& schema) noexcept;
 
 private:
     AstType const& m_ast;
