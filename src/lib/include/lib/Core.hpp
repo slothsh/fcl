@@ -12,7 +12,7 @@
 #include "../../Scheduler.hpp"
 #include "../../ThreadPool.hpp"
 #include "../../Conf.hpp"
-#include "../../ConfLexer.hpp"
+#include "../../ConfTokenizer.hpp"
 #include "../../ConfParser.hpp"
 #include "../../ConfAnalyzer.hpp"
 #include "../../ConfEvaluator.hpp"

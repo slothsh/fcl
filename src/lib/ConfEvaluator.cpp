@@ -15,7 +15,7 @@ ConfEvaluator::ConfEvaluator(std::string_view config_file_path) noexcept
 {}
 
 std::expected<void, Error> ConfEvaluator::load() {
-    auto conf_lexer = ConfLexer::lexFile(m_config_file_path.c_str());
+    auto conf_lexer = ConfTokenizer::lexFile(m_config_file_path.c_str());
     if (!conf_lexer) {
         return std::unexpected(FAILED_TO_LEX);
     }
@@ -83,7 +83,7 @@ std::expected<void, Error> ConfEvaluator::visitIncludes(NodePtr& ast) {
                 parent_directory.value() / path
             );
 
-            auto conf_lexer = ConfLexer::lexFile(include_path.c_str());
+            auto conf_lexer = ConfTokenizer::lexFile(include_path.c_str());
             if (!conf_lexer) {
                 return std::unexpected(FAILED_TO_LEX);
             }

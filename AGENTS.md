@@ -3,7 +3,7 @@
 ## Build & Test Commands
 - **Build**: `./build.sh` (uses CMake with 8 parallel jobs, generates compile_commands.json)
 - **Test all**: `./test.sh` (builds then runs ctest with output on failure)
-- **Single test**: `./build/tests/unit/<TestName>/<TestName>.test` (e.g., `./build/tests/unit/ConfLexer/ConfLexer.test`)
+- **Single test**: `./build/tests/unit/<TestName>/<TestName>.test` (e.g., `./build/tests/unit/ConfTokenizer/ConfTokenizer.test`)
 - **Manual test**: `ctest --output-on-failure --test-dir ./build/tests -R <TestName>`
 
 ## Language & Standards

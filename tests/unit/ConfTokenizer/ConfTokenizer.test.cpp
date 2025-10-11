@@ -6,7 +6,7 @@ using namespace Conf::Language;
 
 TEST_CASE("Lex Simple Configuration File", "[conflexer]") {
     SECTION("Top-Level Block Can Be Lexed") {
-        auto token_list = ConfLexer::lexFile("./data/Config.conf");
+        auto token_list = ConfTokenizer::lexFile("./data/Config.conf");
 
         for (auto const& token : token_list.value()) {
             std::println("{}: |{}|", token.kind, token.data);

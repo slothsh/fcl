@@ -8,7 +8,7 @@ add_library(
         ThreadPool.cpp
         CommandLineArgumentParser.cpp
         UserConfiguration.cpp
-        ConfLexer.cpp
+        ConfTokenizer.cpp
         ConfParser.cpp
         ConfAnalyzer.cpp
         ConfEvaluator.cpp
@@ -29,7 +29,7 @@ target_precompile_headers(
         ThreadPool.hpp
         UserConfiguration.hpp
         Conf.hpp
-        ConfLexer.hpp
+        ConfTokenizer.hpp
         ConfParser.hpp
         ConfAnalyzer.hpp
         ConfEvaluator.hpp

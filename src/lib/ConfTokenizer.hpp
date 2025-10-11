@@ -8,7 +8,7 @@
 #include <string_view>
 #include <vector>
 
-class ConfLexer {
+class ConfTokenizer {
 public:
     using Token = Conf::Language::Token;
     using TokenKind = Conf::Language::TokenKind;
@@ -69,7 +69,7 @@ public:
             stream.read(&token_buffer[0], chunk.size());
             if (std::string_view{token_buffer.data(), chunk.size()} == chunk) {
                 punctuator_kind = kind;
-                terminator_kind = ConfLexer::terminatorFor(punctuator_kind).value_or(UNKNOWN);
+                terminator_kind = ConfTokenizer::terminatorFor(punctuator_kind).value_or(UNKNOWN);
                 break;
             } else {
                 stream.seekg(-chunk.size(), std::ios::cur);

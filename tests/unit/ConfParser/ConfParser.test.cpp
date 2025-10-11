@@ -89,7 +89,7 @@ void includeFiles(typename ConfParser::NodePtr const& ast) {
 
 TEST_CASE("Parse Simple Configuration File", "[confparser]") {
     SECTION("Top-Level Block Can Be Parsed") {
-        auto token_list = ConfLexer::lexFile("./data/Config.conf");
+        auto token_list = ConfTokenizer::lexFile("./data/Config.conf");
         auto ast = ConfParser::parseTokenListWithFilePathRoot(token_list.value(), "./data/Config.conf");
 
         printAst(ast.value());
