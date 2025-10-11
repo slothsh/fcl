@@ -123,11 +123,11 @@ std::expected<void, ConfAnalyzer::Error> ConfAnalyzer::visitShellExpression(Conf
 }
 
 
-std::expected<void, ConfAnalyzer::Error> ConfAnalyzer::typeCheckFunctionArguments(std::vector<ConfAnalyzer::AstType> const& arguments, ConfAnalyzer::KeywordSchema const& schema) noexcept {
+std::expected<void, ConfAnalyzer::Error> ConfAnalyzer::typeCheckFunctionArguments(std::vector<ConfAnalyzer::AstType> const& argument_nodes, ConfAnalyzer::KeywordSchema const& schema) noexcept {
     using enum Error;
     using TokenKindResult = std::expected<ConfAnalyzer::TokenKind, Error>;
 
-    int const arity_diff = static_cast<int>(schema.arity) - static_cast<int>(arguments.size());
+    int const arity_diff = static_cast<int>(schema.arity) - static_cast<int>(argument_nodes.size());
     if (arity_diff != 0) {
         return std::unexpected(FUNCTION_ARITY_MISMATCH);
     }
@@ -140,14 +140,14 @@ std::expected<void, ConfAnalyzer::Error> ConfAnalyzer::typeCheckFunctionArgument
         [](auto const&)                               -> TokenKindResult { return std::unexpected(FUNCTION_INVALID_EXPRESSION); }
     };
 
-    for (auto const& [argument, allowed_types] : std::views::zip(arguments, schema.parameters)) {
-        auto const type_check_result = std::visit(visitor, *argument);
-        if (!type_check_result) {
-            return std::unexpected(type_check_result.error());
+    for (auto const& [node, allowed_types] : std::views::zip(argument_nodes, schema.parameters)) {
+        auto const argument_kind_result = std::visit(visitor, *node);
+        if (!argument_kind_result) {
+            return std::unexpected(argument_kind_result.error());
         }
 
-        auto valid_argument = std::ranges::any_of(allowed_types, [argument = type_check_result.value()](auto const& parameter) {
-            return parameter == argument;
+        auto valid_argument = std::ranges::any_of(allowed_types, [argument_kind = argument_kind_result.value()](auto const& parameter_kind) {
+            return parameter_kind == argument_kind;
         });
 
         if (!valid_argument) {
