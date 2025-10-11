@@ -88,7 +88,7 @@ std::expected<void, ConfLoader::Error> ConfLoader::visitIncludes(ConfLoader::Ast
                     []<detail::IsRootBlock T>(T& root_block) -> std::expected<PathType, Error> {
                         return root_block.file_path.parent_path();
                     },
-                    []<detail::HasNodeKind T>(T&&) -> std::expected<PathType, Error> {
+                    [](auto&&) -> std::expected<PathType, Error> {
                         return std::unexpected(FAILED_TO_RESOLVE_INCLUDE_PATH);
                     },
                 },
