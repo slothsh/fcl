@@ -56,13 +56,11 @@ std::expected<void, Error> ConfEvaluator::evaluate(NodePtr& ast) const {
 
     auto const visitor = Visitors {
         [](KeywordStatement& keyword_statement) -> ReturnType {
-            if (keyword_statement.keyword.kind != KEYWORD_PRINT) {
-                return {};
+            if (keyword_statement.keyword.kind == KEYWORD_PRINT) {
+                auto const& arg1 = get_argument_checked<KeywordPrint::StringArg>(keyword_statement.arguments);
+                auto const& arg2 = get_argument_checked<KeywordPrint::NumberArg>(keyword_statement.arguments);
+                INFO("{} {}", arg1, arg2);
             }
-
-            auto const& arg1 = get_argument_checked<KeywordPrint::StringArg>(keyword_statement.arguments);
-            auto const& arg2 = get_argument_checked<KeywordPrint::NumberArg>(keyword_statement.arguments);
-            INFO("{} {}", arg1, arg2);
 
             return {};
         },
