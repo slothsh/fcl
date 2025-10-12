@@ -11,7 +11,7 @@
 #include <string_view>
 
 #define PUSH_TOKEN(token_list, token)                           \
-    ConfTokenizer::pushToken(std::move((token)), (token_list)); \
+    ConfTokenizer::pushToken(std::move((token)), (token_list));
 
 inline namespace {
     using namespace Conf;
