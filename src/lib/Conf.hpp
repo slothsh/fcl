@@ -385,7 +385,7 @@ struct ShellExpression {
     Node* parent;
 };
 
-// Keyword Disambiguation
+// Function/Keyword Schemas
 
 struct KeywordSchema {
     using ParametersSchema = std::array<std::array<TokenKind, 32>, 128>;
@@ -441,7 +441,7 @@ struct KeywordPrint : FunctionSchemaTraits<
     using NumberArg = std::tuple_element_t<1, typename KeywordPrint::Unwrappers>;
 };
 
-// Concepts
+// Function/Keyword Helpers
 
 template<IsFunctionArgument ArgName, IsSubscriptable<typename ArgName::VariantType> Args>
 auto& get_argument(Args const& arguments) {
@@ -452,6 +452,8 @@ template<IsFunctionArgument ArgName, IsSubscriptable<typename ArgName::VariantTy
 auto& get_argument_checked(Args const& arguments) {
     return ArgName::unwrap(std::get<typename ArgName::InnerType>(*arguments.at(ArgName::Index)));
 }
+
+// Concepts
 
 template<typename T>
 concept HasNodeKind = requires (T t) {
