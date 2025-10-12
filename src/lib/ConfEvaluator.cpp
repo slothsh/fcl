@@ -7,6 +7,7 @@ inline namespace {
     using namespace Conf::Language;
     using Error = ConfEvaluator::Error;
     using enum Error;
+    using enum TokenKind;
 }
 
 ConfEvaluator::ConfEvaluator(std::string_view config_file_path) noexcept
@@ -28,7 +29,8 @@ std::expected<void, Error> ConfEvaluator::load() {
     std::swap(m_ast, ast.value());
 
     return this->analyzeAst()
-        .and_then([this](){ return this->preProcess(); });
+        .and_then([this]() { return this->preProcess(); })
+        .and_then([this]() { return this->evaluate(m_ast); });
 }
 
 std::expected<void, Error> ConfEvaluator::analyzeAst() const {
@@ -43,6 +45,47 @@ std::expected<void, Error> ConfEvaluator::analyzeAst() const {
 
 std::expected<void, Error> ConfEvaluator::preProcess() {
     return this->visitIncludes(m_ast);
+}
+
+std::expected<void, Error> ConfEvaluator::evaluate(NodePtr& ast) const {
+    using ReturnType = std::expected<void, Error>;
+
+    if (!ast) {
+        return std::unexpected(NULL_AST_POINTER);
+    }
+
+    auto const visitor = Visitors {
+        [](KeywordStatement& keyword_statement) -> ReturnType {
+            if (keyword_statement.keyword.kind != KEYWORD_PRINT) {
+                return {};
+            }
+
+            auto const& arg1 = get_argument_checked<KeywordPrint::StringArg>(keyword_statement.arguments);
+            auto const& arg2 = get_argument_checked<KeywordPrint::NumberArg>(keyword_statement.arguments);
+            INFO("{} {}", arg1, arg2);
+
+            return {};
+        },
+
+        [&]<HasNodeKind T>(T& ast) -> std::expected<void, Error> {
+            constexpr bool has_children = AnyOf<
+                T,
+                FilePathRootBlock,
+                FilePathSubRootBlock,
+                NamedBlock
+            >;
+
+            if constexpr (has_children) {
+                for (auto& child : ast.nodes) {
+                    auto _ = this->evaluate(child);
+                }
+            }
+
+            return {};
+        }
+    };
+
+    return std::visit(visitor, *ast);
 }
 
 std::expected<void, Error> ConfEvaluator::visitIncludes(NodePtr& ast) {

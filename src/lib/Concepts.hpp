@@ -44,6 +44,12 @@ concept IsFunctionArgument = requires (T t, typename T::InnerType& inner) {
     { T::unwrap(inner) } -> std::same_as<typename T::ReturnType const&>;
 };
 
+template<typename T, typename P>
+concept HasFunctionTraits = requires(T t) {
+    { T::arity } -> std::same_as<size_t const&>;
+    { T::parameters } -> std::same_as<P const&>;
+};
+
 template<typename T, typename R>
 concept IsSubscriptable = requires (T t) {
     { t[0] } -> std::same_as<R&>;

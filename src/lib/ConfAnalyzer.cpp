@@ -82,6 +82,10 @@ std::expected<void, ConfAnalyzer::Error> ConfAnalyzer::visitKeywordStatement(Key
             return ConfAnalyzer::typeCheckFunctionArguments(node.arguments, KeywordSchema{KeywordInclude{}});
         } break;
 
+        case KEYWORD_PRINT: {
+            return ConfAnalyzer::typeCheckFunctionArguments(node.arguments, KeywordSchema{KeywordPrint{}});
+        } break;
+
         default: {
             WARN("unknown keyword {}", node.kind);
         } break;

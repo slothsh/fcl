@@ -337,6 +337,7 @@ constexpr std::optional<std::string_view> ConfTokenizer::tokenKindString(TokenKi
         case VERTICAL_FEED:              return STRING_VERTICAL_FEED;
         case SPACE:                      return STRING_SPACE;
         case KEYWORD_INCLUDE:            return STRING_KEYWORD_INCLUDE;
+        case KEYWORD_PRINT:              return STRING_KEYWORD_PRINT;
 
         // Dynamic tokens
         case IDENTIFIER:

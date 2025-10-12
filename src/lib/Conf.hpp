@@ -182,6 +182,7 @@ enum class TokenKind {
     SPACE,
     COMMENT,
     KEYWORD_INCLUDE,
+    KEYWORD_PRINT,
 };
 
 // Binary Operator Strings
@@ -214,6 +215,7 @@ inline constexpr std::string_view STRING_ESCAPE_SEQUENCE     = "\\";
 
 // Keyword Strings
 inline constexpr std::string_view STRING_KEYWORD_INCLUDE     = "include";
+inline constexpr std::string_view STRING_KEYWORD_PRINT       = "print";
 
 
 struct Token {
@@ -225,6 +227,7 @@ struct Token {
 
 inline constexpr std::array KEYWORDS {
     std::pair{ TokenKind::KEYWORD_INCLUDE, STRING_KEYWORD_INCLUDE },
+    std::pair{ TokenKind::KEYWORD_PRINT, STRING_KEYWORD_PRINT },
 };
 
 // TODO: separate into open/close punctuators
@@ -384,12 +387,6 @@ struct ShellExpression {
 
 // Keyword Disambiguation
 
-template<typename T, typename P>
-concept HasFunctionTraits = requires(T t) {
-    { T::arity } -> std::same_as<size_t const&>;
-    { T::parameters } -> std::same_as<P const&>;
-};
-
 struct KeywordSchema {
     using ParametersSchema = std::array<std::array<TokenKind, 32>, 128>;
 
@@ -400,7 +397,7 @@ struct KeywordSchema {
     {}
 
     size_t const& arity;
-    std::array<std::array<TokenKind, 32>, 128> const& parameters;
+    ParametersSchema const& parameters;
 };
 
 template<size_t Index, typename I, auto F, TokenKind... V>
@@ -418,6 +415,30 @@ struct KeywordInclude : FunctionSchemaTraits<
 >
 {
     using FilePathArg = std::tuple_element_t<0, typename KeywordInclude::Unwrappers>;
+};
+
+struct KeywordPrint : FunctionSchemaTraits<
+    TokenKind,
+    NodePtr,
+    TokenArgument<
+        0,
+        StringExpression,
+        [](StringExpression& inner) -> auto const& { return inner.token.data; },
+        TokenKind::STRING_LITERAL
+    >,
+    TokenArgument<
+        1,
+        NumberExpression,
+        [](NumberExpression& inner) -> auto const& { return inner.value; },
+        TokenKind::NUMBER_LITERAL_HEXADECIMAL,
+        TokenKind::NUMBER_LITERAL_DECIMAL,
+        TokenKind::NUMBER_LITERAL_BINARY,
+        TokenKind::NUMBER_LITERAL_OCTAL
+    >
+>
+{
+    using StringArg = std::tuple_element_t<0, typename KeywordPrint::Unwrappers>;
+    using NumberArg = std::tuple_element_t<1, typename KeywordPrint::Unwrappers>;
 };
 
 // Concepts
@@ -502,6 +523,7 @@ struct std::formatter<Conf::Language::TokenKind> : std::formatter<std::string_vi
             case VERTICAL_FEED:              return "VERTICAL_FEED";
             case SPACE:                      return "SPACE";
             case KEYWORD_INCLUDE:            return "KEYWORD_INCLUDE";
+            case KEYWORD_PRINT:              return "KEYWORD_PRINT";
         }
     }
 

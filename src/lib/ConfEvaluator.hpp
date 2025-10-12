@@ -25,6 +25,7 @@ public:
     std::expected<void, Error> load();
     std::expected<void, Error> analyzeAst() const;
     std::expected<void, Error> preProcess();
+    std::expected<void, Error> evaluate(NodePtr& ast) const;
 
     std::expected<void, Error> visitIncludes(NodePtr& ast);
     std::expected<void, Error> visitSpliceIncludes(Node* parent, Node* me, NodePtr& splice);

@@ -182,7 +182,8 @@ std::expected<NodePtr, Error> ConfParser::parse(NodePtr& parent) {
             m_cursor = reset;
         } break;
 
-        case KEYWORD_INCLUDE: {
+        case KEYWORD_INCLUDE:
+        case KEYWORD_PRINT: {
             if (auto keyword_statement = this->takeKeywordStatement(head.front(), parent)) {
                 return std::move(keyword_statement.value());
             }
