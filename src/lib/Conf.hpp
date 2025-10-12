@@ -409,7 +409,7 @@ struct KeywordInclude : FunctionSchemaTraits<
     TokenArgument<
         0,
         PathExpression,
-        [](PathExpression& inner) -> auto const& { return inner.token.data; },
+        [](PathExpression& inner) -> auto const& { return inner; },
         TokenKind::PATH_LITERAL_RELATIVE, TokenKind::PATH_LITERAL_ABSOLUTE
     >
 >

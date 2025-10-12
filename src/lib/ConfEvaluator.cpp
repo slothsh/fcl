@@ -1,3 +1,4 @@
+#include "Conf.hpp"
 #include <expected>
 #include <utility>
 #include <variant>
@@ -118,9 +119,10 @@ std::expected<void, Error> ConfEvaluator::visitIncludes(NodePtr& ast) {
                 return std::unexpected(FAILED_TO_RESOLVE_INCLUDE_PATH);
             }
 
-            auto const& path = get_argument_checked<KeywordInclude::FilePathArg>(keyword_statement.arguments);
-
-            auto const include_path = std::filesystem::weakly_canonical(parent_directory.value() / path);
+            auto const& path_expression = get_argument_checked<KeywordInclude::FilePathArg>(keyword_statement.arguments);
+            auto const include_path = path_expression.token.kind == PATH_LITERAL_ABSOLUTE
+                ? std::filesystem::path(path_expression.token.data)
+                : std::filesystem::weakly_canonical(parent_directory.value() / path_expression.token.data);
 
             auto conf_tokenizer = ConfTokenizer::tokenizeFile(include_path.c_str());
             if (!conf_tokenizer) {
