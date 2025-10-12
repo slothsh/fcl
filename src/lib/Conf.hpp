@@ -1,5 +1,6 @@
 #pragma once
 
+#include "TypeTraits.hpp"
 #include <algorithm>
 #include <cmath>
 #include <concepts>
@@ -14,53 +15,6 @@
 #include <vector>
 
 namespace Conf {
-
-using NumberType = double;
-
-template<typename T>
-concept HasInnerType = requires (T t, typename T::InnerType inner) {
-    typename T::InnerType;
-    typename T::ReturnType;
-    { T::Index } -> std::same_as<size_t const&>;
-    { T::unwrap(inner) } -> std::same_as<typename T::ReturnType&>;
-};
-
-// TODO: concept for `Value`
-template<HasInnerType ArgName, typename Variant>
-auto& get_argument(std::vector<Variant> const& arguments) {
-    return ArgName::unwrap(std::get<typename ArgName::InnerType>(*arguments.at(ArgName::Index)));
-}
-
-// Binary Operator Strings
-inline constexpr std::string_view STRING_EQUALS              = "=";
-inline constexpr std::string_view STRING_WALRUS              = ":=";
-
-// Symmetric Delimiter Strings
-inline constexpr std::string_view STRING_OPEN_BRACE          = "{";
-inline constexpr std::string_view STRING_CLOSE_BRACE         = "}";
-inline constexpr std::string_view STRING_OPEN_DOUBLE_BRACE   = "{{";
-inline constexpr std::string_view STRING_CLOSE_DOUBLE_BRACE  = "}}";
-inline constexpr std::string_view STRING_OPEN_QUOTE          = "'";
-inline constexpr std::string_view STRING_CLOSE_QUOTE         = "'";
-inline constexpr std::string_view STRING_OPEN_DOUBLE_QUOTE   = "\"";
-inline constexpr std::string_view STRING_CLOSE_DOUBLE_QUOTE  = "\"";
-
-// White Space Strings
-inline constexpr std::string_view STRING_TAB_FEED            = "\t";
-inline constexpr std::string_view STRING_LINE_FEED           = "\r\n";
-inline constexpr std::string_view STRING_VERTICAL_FEED       = "\v";
-inline constexpr std::string_view STRING_SPACE               = " ";
-
-// Single Character Strings
-inline constexpr std::string_view STRING_SEMI_COLON          = ";";
-inline constexpr std::string_view STRING_COMMA               = ",";
-
-// Single Delimiter Strings
-inline constexpr std::string_view STRING_COMMENT_SINGLE_LINE = "#";
-inline constexpr std::string_view STRING_ESCAPE_SEQUENCE     = "\\";
-
-// Keyword Strings
-inline constexpr std::string_view STRING_KEYWORD_INCLUDE     = "include";
 
 } // END OF NAMESPACE `Conf`
 
@@ -194,6 +148,7 @@ std::optional<T> fromBinaryString(S const& number_string) noexcept {
 namespace Conf::Language {
 
 // Common Types
+using NumberType = double;
 using PathType = std::filesystem::path;
 
 // Tokenizer
@@ -229,6 +184,38 @@ enum class TokenKind {
     KEYWORD_INCLUDE,
 };
 
+// Binary Operator Strings
+inline constexpr std::string_view STRING_EQUALS              = "=";
+inline constexpr std::string_view STRING_WALRUS              = ":=";
+
+// Symmetric Delimiter Strings
+inline constexpr std::string_view STRING_OPEN_BRACE          = "{";
+inline constexpr std::string_view STRING_CLOSE_BRACE         = "}";
+inline constexpr std::string_view STRING_OPEN_DOUBLE_BRACE   = "{{";
+inline constexpr std::string_view STRING_CLOSE_DOUBLE_BRACE  = "}}";
+inline constexpr std::string_view STRING_OPEN_QUOTE          = "'";
+inline constexpr std::string_view STRING_CLOSE_QUOTE         = "'";
+inline constexpr std::string_view STRING_OPEN_DOUBLE_QUOTE   = "\"";
+inline constexpr std::string_view STRING_CLOSE_DOUBLE_QUOTE  = "\"";
+
+// White Space Strings
+inline constexpr std::string_view STRING_TAB_FEED            = "\t";
+inline constexpr std::string_view STRING_LINE_FEED           = "\r\n";
+inline constexpr std::string_view STRING_VERTICAL_FEED       = "\v";
+inline constexpr std::string_view STRING_SPACE               = " ";
+
+// Single Character Strings
+inline constexpr std::string_view STRING_SEMI_COLON          = ";";
+inline constexpr std::string_view STRING_COMMA               = ",";
+
+// Single Delimiter Strings
+inline constexpr std::string_view STRING_COMMENT_SINGLE_LINE = "#";
+inline constexpr std::string_view STRING_ESCAPE_SEQUENCE     = "\\";
+
+// Keyword Strings
+inline constexpr std::string_view STRING_KEYWORD_INCLUDE     = "include";
+
+
 struct Token {
     std::string data;
     TokenKind kind;
@@ -237,44 +224,44 @@ struct Token {
 };
 
 inline constexpr std::array KEYWORDS {
-    std::pair{ TokenKind::KEYWORD_INCLUDE, Conf::STRING_KEYWORD_INCLUDE },
+    std::pair{ TokenKind::KEYWORD_INCLUDE, STRING_KEYWORD_INCLUDE },
 };
 
 // TODO: separate into open/close punctuators
 // These must be ordered from longest to shortest
 inline constexpr std::array PUNCTUATORS {
-    std::pair{ TokenKind::EQUALS, Conf::STRING_EQUALS },
-    std::pair{ TokenKind::WALRUS, Conf::STRING_WALRUS },
-    std::pair{ TokenKind::COMMA, Conf::STRING_COMMA },
-    std::pair{ TokenKind::SEMI_COLON, Conf::STRING_SEMI_COLON },
-    std::pair{ TokenKind::OPEN_BRACE, Conf::STRING_OPEN_BRACE },
-    std::pair{ TokenKind::CLOSE_BRACE, Conf::STRING_CLOSE_BRACE },
+    std::pair{ TokenKind::EQUALS, STRING_EQUALS },
+    std::pair{ TokenKind::WALRUS, STRING_WALRUS },
+    std::pair{ TokenKind::COMMA, STRING_COMMA },
+    std::pair{ TokenKind::SEMI_COLON, STRING_SEMI_COLON },
+    std::pair{ TokenKind::OPEN_BRACE, STRING_OPEN_BRACE },
+    std::pair{ TokenKind::CLOSE_BRACE, STRING_CLOSE_BRACE },
 };
 
 inline constexpr std::array STATEMENT_TERMINATORS {
-    std::pair{ TokenKind::SEMI_COLON, Conf::STRING_SEMI_COLON },
+    std::pair{ TokenKind::SEMI_COLON, STRING_SEMI_COLON },
 };
 
 inline constexpr std::array STATEMENT_SEPARATORS {
-    std::pair{ TokenKind::COMMA, Conf::STRING_COMMA },
+    std::pair{ TokenKind::COMMA, STRING_COMMA },
 };
 
 inline constexpr std::array STRING_LITERAL_OPEN_PUNCTUATORS {
-    std::pair{ TokenKind::OPEN_QUOTE, Conf::STRING_OPEN_QUOTE },
-    std::pair{ TokenKind::OPEN_DOUBLE_QUOTE, Conf::STRING_OPEN_DOUBLE_QUOTE },
+    std::pair{ TokenKind::OPEN_QUOTE, STRING_OPEN_QUOTE },
+    std::pair{ TokenKind::OPEN_DOUBLE_QUOTE, STRING_OPEN_DOUBLE_QUOTE },
 };
 
 inline constexpr std::array STRING_LITERAL_CLOSE_PUNCTUATORS {
-    std::pair{ TokenKind::CLOSE_QUOTE, Conf::STRING_CLOSE_QUOTE },
-    std::pair{ TokenKind::CLOSE_DOUBLE_QUOTE, Conf::STRING_CLOSE_DOUBLE_QUOTE },
+    std::pair{ TokenKind::CLOSE_QUOTE, STRING_CLOSE_QUOTE },
+    std::pair{ TokenKind::CLOSE_DOUBLE_QUOTE, STRING_CLOSE_DOUBLE_QUOTE },
 };
 
 inline constexpr std::array SHELL_LITERAL_OPEN_PUNCTUATORS {
-    std::pair{ TokenKind::OPEN_DOUBLE_BRACE, Conf::STRING_OPEN_DOUBLE_BRACE },
+    std::pair{ TokenKind::OPEN_DOUBLE_BRACE, STRING_OPEN_DOUBLE_BRACE },
 };
 
 inline constexpr std::array SHELL_LITERAL_CLOSE_PUNCTUATORS {
-    std::pair{ TokenKind::CLOSE_DOUBLE_BRACE, Conf::STRING_CLOSE_DOUBLE_BRACE },
+    std::pair{ TokenKind::CLOSE_DOUBLE_BRACE, STRING_CLOSE_DOUBLE_BRACE },
 };
 
 // Parser
@@ -397,26 +384,53 @@ struct ShellExpression {
 
 // Keyword Disambiguation
 
+template<typename T, typename P>
+concept HasFunctionTraits = requires(T t) {
+    { T::arity } -> std::same_as<size_t const&>;
+    { T::parameters } -> std::same_as<P const&>;
+};
+
 struct KeywordSchema {
-    size_t arity;
-    std::array<std::array<TokenKind, 128>, 128> parameters;
+    using ParametersSchema = std::array<std::array<TokenKind, 32>, 128>;
+
+    template<HasFunctionTraits<ParametersSchema> T>
+    explicit KeywordSchema(T&&)
+        : arity{T::arity}
+        , parameters{T::parameters}
+    {}
+
+    size_t const& arity;
+    std::array<std::array<TokenKind, 32>, 128> const& parameters;
 };
 
-struct KeywordIncludeFilePath {
-    using InnerType = PathExpression;
-    using ReturnType = decltype(PathExpression::token.data);
-    static constexpr size_t Index = 0;
-    static ReturnType& unwrap(InnerType& inner) { return inner.token.data; }
-};
+template<size_t Index, typename I, auto F, TokenKind... V>
+struct TokenArgument : FunctionArgument<Index, TokenKind, NodePtr, I, F, V...> {};
 
-inline constexpr auto KEYWORD_INCLUDE_ARGS_SCHEMA = KeywordSchema {
-    .arity = 1,
-    .parameters = {
-        { TokenKind::PATH_LITERAL_ABSOLUTE, TokenKind::PATH_LITERAL_RELATIVE }
-    },
+struct KeywordInclude : FunctionSchemaTraits<
+    TokenKind,
+    NodePtr,
+    TokenArgument<
+        0,
+        PathExpression,
+        [](PathExpression& inner) -> auto const& { return inner.token.data; },
+        TokenKind::PATH_LITERAL_RELATIVE, TokenKind::PATH_LITERAL_ABSOLUTE
+    >
+>
+{
+    using FilePathArg = std::tuple_element_t<0, typename KeywordInclude::Unwrappers>;
 };
 
 // Concepts
+
+template<IsFunctionArgument ArgName, IsSubscriptable<typename ArgName::VariantType> Args>
+auto& get_argument(Args const& arguments) {
+    return ArgName::unwrap(std::get<typename ArgName::InnerType>(*arguments[ArgName::Index]));
+}
+
+template<IsFunctionArgument ArgName, IsSubscriptable<typename ArgName::VariantType> Args>
+auto& get_argument_checked(Args const& arguments) {
+    return ArgName::unwrap(std::get<typename ArgName::InnerType>(*arguments.at(ArgName::Index)));
+}
 
 template<typename T>
 concept HasNodeKind = requires (T t) {

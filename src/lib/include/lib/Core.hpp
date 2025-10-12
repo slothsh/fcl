@@ -2,8 +2,8 @@
 
 #include "../../Macros.hpp"
 #include "../../Types.hpp"
-#include "../../TypeTraits.hpp"
 #include "../../Concepts.hpp"
+#include "../../TypeTraits.hpp"
 #include "../../ConfigValue.hpp"
 #include "../../UserConfiguration.hpp"
 #include "../../CommandLineArgumentParser.hpp"

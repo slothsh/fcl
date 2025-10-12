@@ -26,3 +26,26 @@ concept ValueFromConfig = AnyOf<
     ConfigNumber,
     ConfigString
 >;
+
+template<typename F, typename... Args>
+concept InvocableConstReferenceReturn = std::invocable<F, Args...> && requires (F f, Args... args) {
+    { f(args...) } -> std::same_as<std::invoke_result_t<F, Args...> const&>;
+};
+
+template<typename T>
+concept IsFunctionArgument = requires (T t, typename T::InnerType& inner) {
+    typename T::KindType;
+    typename T::InnerType;
+    typename T::ReturnType;
+    typename T::VariantType;
+    { T::Index } -> std::same_as<size_t const&>;
+    { T::kinds_size } -> std::same_as<size_t const&>;
+    { T::kinds } -> std::same_as<std::array<typename T::KindType, 32> const&>;
+    { T::unwrap(inner) } -> std::same_as<typename T::ReturnType const&>;
+};
+
+template<typename T, typename R>
+concept IsSubscriptable = requires (T t) {
+    { t[0] } -> std::same_as<R&>;
+    { t.at(0) } -> std::same_as<R&>;
+};

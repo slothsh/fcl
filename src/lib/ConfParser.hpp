@@ -9,7 +9,7 @@ class ConfParser {
 public:
     using Token = Conf::Language::Token;
     using NodePtr = Conf::Language::NodePtr;
-    using NumberType = Conf::NumberType;
+    using NumberType = Conf::Language::NumberType;
 
     enum class Error {
         TODO,

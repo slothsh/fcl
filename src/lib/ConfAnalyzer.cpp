@@ -4,7 +4,7 @@
 #include <vector>
 
 #define FORWARD_VISITOR(member_function) \
-    [](std::remove_cvref_t<std::tuple_element_t<0, typename FunctionTraits<decltype(member_function)>::argument_types>> const& node) { return member_function(node); }
+    [](std::remove_cvref_t<std::tuple_element_t<0, typename FunctionTraits<decltype(member_function)>::ArgumentTypes>> const& node) { return member_function(node); }
 
 inline namespace {
     using namespace Conf;
@@ -79,7 +79,7 @@ std::expected<void, ConfAnalyzer::Error> ConfAnalyzer::visitNamedBlock(NamedBloc
 std::expected<void, ConfAnalyzer::Error> ConfAnalyzer::visitKeywordStatement(KeywordStatement const& node) noexcept {
     switch (node.keyword.kind) {
         case KEYWORD_INCLUDE: {
-            return ConfAnalyzer::typeCheckFunctionArguments(node.arguments, KEYWORD_INCLUDE_ARGS_SCHEMA);
+            return ConfAnalyzer::typeCheckFunctionArguments(node.arguments, KeywordSchema{KeywordInclude{}});
         } break;
 
         default: {

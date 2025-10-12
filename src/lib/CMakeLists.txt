@@ -19,8 +19,8 @@ target_precompile_headers(
     PRIVATE
         Macros.hpp
         Types.hpp
-        TypeTraits.hpp
         Concepts.hpp
+        TypeTraits.hpp
         ConfigValue.hpp
         CommandLineArgumentParser.hpp
         ArenaAllocator.hpp

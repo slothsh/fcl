@@ -10,7 +10,7 @@
 #include <string>
 #include <string_view>
 
-#define PUSH_TOKEN(token_list, token)                       \
+#define PUSH_TOKEN(token_list, token)                           \
     ConfTokenizer::pushToken(std::move((token)), (token_list)); \
 
 inline namespace {
@@ -113,7 +113,7 @@ std::optional<char> ConfTokenizer::peekEscapedCharacter(std::ifstream& stream) {
     std::array<char, 2> token_buffer{};
 
     char c = stream.peek();
-    if (std::string_view{&c, 1} == Conf::STRING_ESCAPE_SEQUENCE) {
+    if (std::string_view{&c, 1} == STRING_ESCAPE_SEQUENCE) {
         stream.seekg(1, std::ios::cur);
         c = stream.peek();
         stream.seekg(1, std::ios::cur);
@@ -384,7 +384,7 @@ constexpr bool ConfTokenizer::isIdentifier(char c) {
 
 constexpr bool ConfTokenizer::isStringLiteralStart(char c) {
     auto const char_string = std::string_view{&c, 1};
-    return char_string == Conf::STRING_OPEN_QUOTE || char_string == Conf::STRING_OPEN_DOUBLE_QUOTE;
+    return char_string == STRING_OPEN_QUOTE || char_string == STRING_OPEN_DOUBLE_QUOTE;
 }
 
 constexpr bool ConfTokenizer::isHexadecimalDigit(char c) {

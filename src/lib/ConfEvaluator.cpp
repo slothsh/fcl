@@ -15,7 +15,7 @@ ConfEvaluator::ConfEvaluator(std::string_view config_file_path) noexcept
 {}
 
 std::expected<void, Error> ConfEvaluator::load() {
-    auto conf_tokenizer = ConfTokenizer::lexFile(m_config_file_path.c_str());
+    auto conf_tokenizer = ConfTokenizer::tokenizeFile(m_config_file_path.c_str());
     if (!conf_tokenizer) {
         return std::unexpected(FAILED_TO_TOKENIZE);
     }
@@ -52,7 +52,7 @@ std::expected<void, Error> ConfEvaluator::visitIncludes(NodePtr& ast) {
 
     auto const visitor = Visitors {
         [&](KeywordStatement& keyword_statement) -> std::expected<void, Error> {
-            if (keyword_statement.keyword.data != Conf::STRING_KEYWORD_INCLUDE) {
+            if (keyword_statement.keyword.data != STRING_KEYWORD_INCLUDE) {
                 return {};
             }
 
@@ -77,13 +77,11 @@ std::expected<void, Error> ConfEvaluator::visitIncludes(NodePtr& ast) {
                 return std::unexpected(FAILED_TO_RESOLVE_INCLUDE_PATH);
             }
 
-            auto path = Conf::get_argument<KeywordIncludeFilePath>(keyword_statement.arguments);
+            auto const& path = get_argument_checked<KeywordInclude::FilePathArg>(keyword_statement.arguments);
 
-            auto const include_path = std::filesystem::weakly_canonical(
-                parent_directory.value() / path
-            );
+            auto const include_path = std::filesystem::weakly_canonical(parent_directory.value() / path);
 
-            auto conf_tokenizer = ConfTokenizer::lexFile(include_path.c_str());
+            auto conf_tokenizer = ConfTokenizer::tokenizeFile(include_path.c_str());
             if (!conf_tokenizer) {
                 return std::unexpected(FAILED_TO_TOKENIZE);
             }
