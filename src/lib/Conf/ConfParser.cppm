@@ -1,11 +1,9 @@
-#pragma once
+export module Conf:Parser;
 
-#include <expected>
-#include <optional>
-#include <string_view>
-#include <vector>
+import :Common;
+import std;
 
-class ConfParser {
+export class ConfParser {
 public:
     using Token = Conf::Language::Token;
     using NodePtr = Conf::Language::NodePtr;
@@ -34,6 +32,6 @@ public:
     std::optional<NodePtr> takeShellExpression(Token const& token, NodePtr& parent);
 
 private:
-    size_t m_cursor;
+    std::size_t m_cursor;
     std::vector<Token> const& m_token_list;
 };

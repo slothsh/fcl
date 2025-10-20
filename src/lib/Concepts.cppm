@@ -1,25 +1,26 @@
-#pragma once
+export module Concepts;
 
-#include <concepts>
+import std;
+import Types;
 
-template<typename T, typename... Ts>
+export template<typename T, typename... Ts>
 concept AnyOf = (std::same_as<T, Ts> || ...);
 
-template<typename T, typename... Ts>
+export template<typename T, typename... Ts>
 concept Number = std::floating_point<T> || std::integral<T>;
 
-template<typename T, typename... Ts>
+export template<typename T, typename... Ts>
 concept NoneOf = !(std::same_as<T, Ts> || ...);
 
-template<typename T>
+export template<typename T>
 concept ImplicitConfigValue = std::same_as<ConfigBoolean, std::remove_cvref_t<T>> || Number<T> || std::constructible_from<ConfigString, T>;
 
-template<typename T, typename C>
+export template<typename T, typename C>
 concept HasRawData = requires (T t) {
     { t.data() } -> std::same_as<C*>;
 };
 
-template<typename T>
+export template<typename T>
 concept ValueFromConfig = AnyOf<
     T,
     ConfigBoolean,
@@ -27,30 +28,30 @@ concept ValueFromConfig = AnyOf<
     ConfigString
 >;
 
-template<typename F, typename... Args>
+export template<typename F, typename... Args>
 concept InvocableConstReferenceReturn = std::invocable<F, Args...> && requires (F f, Args... args) {
     { f(args...) } -> std::same_as<std::invoke_result_t<F, Args...> const&>;
 };
 
-template<typename T>
+export template<typename T>
 concept IsFunctionArgument = requires (T t, typename T::InnerType& inner) {
     typename T::KindType;
     typename T::InnerType;
     typename T::ReturnType;
     typename T::VariantType;
-    { T::Index } -> std::same_as<size_t const&>;
-    { T::kinds_size } -> std::same_as<size_t const&>;
+    { T::Index } -> std::same_as<std::size_t const&>;
+    { T::kinds_size } -> std::same_as<std::size_t const&>;
     { T::kinds } -> std::same_as<std::array<typename T::KindType, 32> const&>;
     { T::unwrap(inner) } -> std::same_as<typename T::ReturnType const&>;
 };
 
-template<typename T, typename P>
+export template<typename T, typename P>
 concept HasFunctionTraits = requires(T t) {
-    { T::arity } -> std::same_as<size_t const&>;
+    { T::arity } -> std::same_as<std::size_t const&>;
     { T::parameters } -> std::same_as<P const&>;
 };
 
-template<typename T, typename R>
+export template<typename T, typename R>
 concept IsSubscriptable = requires (T t) {
     { t[0] } -> std::same_as<R&>;
     { t.at(0) } -> std::same_as<R&>;

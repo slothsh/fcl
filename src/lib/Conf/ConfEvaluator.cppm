@@ -1,8 +1,9 @@
-#pragma once
+export module Conf:Evaluator;
 
-#include <expected>
+import :Common;
+import std;
 
-class ConfEvaluator {
+export class ConfEvaluator {
 public:
     using NodePtr = Conf::Language::NodePtr;
     using Node = Conf::Language::Node;

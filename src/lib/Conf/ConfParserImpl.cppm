@@ -1,9 +1,13 @@
-#include <optional>
-#include <expected>
-#include <ranges>
-#include <algorithm>
-#include <cstddef>
-#include <utility>
+module;
+
+#include "../Macros.hpp"
+
+export module Conf:ParserImpl;
+
+import :Common;
+import :Parser;
+import Types;
+import std;
 
 inline namespace {
     using namespace Conf;
@@ -23,7 +27,7 @@ inline namespace {
         ) != range.end();
     }
 
-    template<std::ranges::range R, size_t N>
+    template<std::ranges::range R, std::size_t N>
     static bool rangeTokenIsAnyOf(R&& range, std::array<TokenKind, N> const& token_kinds) {
         return std::ranges::find_if(
             range,
@@ -119,7 +123,7 @@ ConfParser::ConfParser(std::vector<Token> const& token_list)
 {}
 
 std::expected<NodePtr, Error> ConfParser::parse(NodePtr& parent) {
-    size_t reset = m_cursor;
+    std::size_t reset = m_cursor;
 
     auto const head = m_token_list
         | std::views::drop(m_cursor++)
@@ -205,7 +209,7 @@ std::expected<NodePtr, Error> ConfParser::parse(NodePtr& parent) {
 
 
 std::optional<NodePtr> ConfParser::takeNamedBlock(Token const& token, NodePtr& parent) {
-    size_t const reset = m_cursor;
+    std::size_t const reset = m_cursor;
 
     auto const block_start = m_token_list
         | std::views::drop(m_cursor++)
@@ -263,7 +267,7 @@ std::optional<NodePtr> ConfParser::takeNamedBlock(Token const& token, NodePtr& p
 }
 
 std::optional<NodePtr> ConfParser::takeKeywordStatement(Token const& token, NodePtr& parent) {
-    size_t const reset = m_cursor;
+    std::size_t const reset = m_cursor;
 
     auto const push_child = [&](NodePtr& root, NodePtr& child) {
         auto const push_child_visitor = Visitors {
@@ -322,7 +326,7 @@ std::optional<NodePtr> ConfParser::takeKeywordStatement(Token const& token, Node
 }
 
 std::optional<NodePtr> ConfParser::takeVariableAssignmentExpression(Token const& token, NodePtr& parent) {
-    size_t const reset = m_cursor;
+    std::size_t const reset = m_cursor;
 
     auto const operator_token = m_token_list
         | std::views::drop(m_cursor++)
@@ -368,7 +372,7 @@ std::optional<NodePtr> ConfParser::takeVariableAssignmentExpression(Token const&
 }
 
 std::optional<NodePtr> ConfParser::takeConstantAssignmentExpression(Token const& token, NodePtr& parent) {
-    size_t const reset = m_cursor;
+    std::size_t const reset = m_cursor;
 
     auto const operator_token = m_token_list
         | std::views::drop(m_cursor++)

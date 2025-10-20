@@ -1,7 +1,16 @@
-#include "Conf.hpp"
-#include <expected>
-#include <utility>
-#include <variant>
+module;
+
+#include "../Macros.hpp"
+
+export module Conf:EvaluatorImpl;
+
+import :Common;
+import :Tokenizer;
+import :Parser;
+import :Analyzer;
+import :Evaluator;
+import Types;
+import std;
 
 inline namespace {
     using namespace Conf;
@@ -170,7 +179,7 @@ std::expected<void, Error> ConfEvaluator::visitSpliceIncludes(Node* parent, Node
 
     auto const visitor = Visitors {
         [this, &me, &splice]<HasChildren T>(T& ast) -> std::expected<void, Error> {
-            size_t position = -1;
+            std::size_t position = -1;
             for (auto& child : ast.nodes) {
                 if (child.get() != me) {
                     ++position;

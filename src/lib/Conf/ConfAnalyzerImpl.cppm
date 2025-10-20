@@ -1,7 +1,13 @@
-#include <algorithm>
-#include <cstddef>
-#include <expected>
-#include <vector>
+module;
+
+#include "../Macros.hpp"
+
+export module Conf:AnalyzerImpl;
+
+import :Common;
+import :Analyzer;
+import Types;
+import std;
 
 #define FORWARD_VISITOR(member_function) \
     [](std::remove_cvref_t<std::tuple_element_t<0, typename FunctionTraits<decltype(member_function)>::ArgumentTypes>> const& node) { return member_function(node); }

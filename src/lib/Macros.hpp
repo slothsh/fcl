@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstdio>
-#include <print>
 
 #define TODO(message, ...) do {                                                                    \
     std::println(stderr, "[TODO] |{}:{}| " message, __FILE__, __LINE__ __VA_OPT__(,) __VA_ARGS__); \

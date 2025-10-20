@@ -1,35 +1,25 @@
-#pragma once
+export module Conf:Common;
 
-#include "TypeTraits.hpp"
-#include <algorithm>
-#include <cmath>
-#include <concepts>
-#include <cstddef>
-#include <cstdint>
-#include <filesystem>
-#include <functional>
-#include <iterator>
-#include <optional>
-#include <ranges>
-#include <string>
-#include <vector>
+import std;
+import Concepts;
+import TypeTraits;
 
-namespace Conf {
+export namespace Conf {
 
 } // END OF NAMESPACE `Conf`
 
-namespace Conf::Number {
+export namespace Conf::Number {
 
 template<std::floating_point T, HasRawData<std::string::value_type> S = std::string>
 std::optional<T> fromHexadecimalString(S const& number_string) noexcept {
-    auto const digit_value = [](char c) -> int64_t {
+    auto const digit_value = [](char c) -> std::int64_t {
         if ('0' <= c && c <= '9') return c - '0';
         if ('A' <= c && c <= 'F') return 10 + (c - 'A');
         if ('a' <= c && c <= 'f') return 10 + (c - 'a');
         return -1;
     };
 
-    auto const group_value = [](auto group) -> int64_t {
+    auto const group_value = [](auto group) -> std::int64_t {
         return std::pow(16, std::get<0>(group)) * std::get<1>(group);
     };
 
@@ -39,7 +29,7 @@ std::optional<T> fromHexadecimalString(S const& number_string) noexcept {
         return std::nullopt;
     }
 
-    int64_t value = std::ranges::fold_left(
+    std::int64_t value = std::ranges::fold_left(
         std::views::zip(std::ranges::iota_view(0), digits) | std::views::transform(group_value),
         0LL,
         std::plus{}
@@ -50,7 +40,7 @@ std::optional<T> fromHexadecimalString(S const& number_string) noexcept {
 
 template<std::floating_point T, typename S = std::string>
 std::optional<T> fromDecimalString(S const& number_string) noexcept {
-    auto const digit_value = [](char c) -> int64_t {
+    auto const digit_value = [](char c) -> std::int64_t {
         if ('0' <= c && c <= '9') return c - '0';
         if (c == '.') return 0;
         return -1;
@@ -92,12 +82,12 @@ std::optional<T> fromDecimalString(S const& number_string) noexcept {
 
 template<std::floating_point T, typename S = std::string>
 std::optional<T> fromOctalString(S const& number_string) noexcept {
-    auto const digit_value = [](char c) -> int64_t {
+    auto const digit_value = [](char c) -> std::int64_t {
         if ('0' <= c && c <= '7') return c - '0';
         return -1;
     };
 
-    auto const group_value = [](auto group) -> int64_t {
+    auto const group_value = [](auto group) -> std::int64_t {
         return std::pow(8, std::get<0>(group)) * std::get<1>(group);
     };
 
@@ -107,7 +97,7 @@ std::optional<T> fromOctalString(S const& number_string) noexcept {
         return std::nullopt;
     }
 
-    int64_t value = std::ranges::fold_left(
+    std::int64_t value = std::ranges::fold_left(
         std::views::zip(std::ranges::iota_view(0), digits) | std::views::transform(group_value),
         0LL,
         std::plus{}
@@ -119,12 +109,12 @@ std::optional<T> fromOctalString(S const& number_string) noexcept {
 
 template<std::floating_point T, typename S = std::string>
 std::optional<T> fromBinaryString(S const& number_string) noexcept {
-    auto const digit_value = [](char c) -> int64_t {
+    auto const digit_value = [](char c) -> std::int64_t {
         if ('0' <= c && c <= '1') return c - '0';
         return -1;
     };
 
-    auto const group_value = [](auto group) -> int64_t {
+    auto const group_value = [](auto group) -> std::int64_t {
         return std::pow(2, std::get<0>(group)) * std::get<1>(group);
     };
 
@@ -134,7 +124,7 @@ std::optional<T> fromBinaryString(S const& number_string) noexcept {
         return std::nullopt;
     }
 
-    int64_t value = std::ranges::fold_left(
+    std::int64_t value = std::ranges::fold_left(
         std::views::zip(std::ranges::iota_view(0), digits) | std::views::transform(group_value),
         0LL,
         std::plus{}
@@ -145,7 +135,7 @@ std::optional<T> fromBinaryString(S const& number_string) noexcept {
 
 } // END OF NAMESPACE `Conf::Number`
 
-namespace Conf::Language {
+export namespace Conf::Language {
 
 // Common Types
 using NumberType = double;
@@ -221,8 +211,8 @@ inline constexpr std::string_view STRING_KEYWORD_PRINT       = "print";
 struct Token {
     std::string data;
     TokenKind kind;
-    size_t position;
-    size_t length;
+    std::size_t position;
+    std::size_t length;
 };
 
 inline constexpr std::array KEYWORDS {
@@ -396,11 +386,11 @@ struct KeywordSchema {
         , parameters{T::parameters}
     {}
 
-    size_t const& arity;
+    std::size_t const& arity;
     ParametersSchema const& parameters;
 };
 
-template<size_t Index, typename I, auto F, TokenKind... V>
+template<std::size_t Index, typename I, auto F, TokenKind... V>
 struct TokenArgument : FunctionArgument<Index, TokenKind, NodePtr, I, F, V...> {};
 
 struct KeywordInclude : FunctionSchemaTraits<

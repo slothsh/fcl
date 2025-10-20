@@ -1,14 +1,10 @@
-#pragma once
+export module Conf:Tokenizer;
 
-#include <array>
-#include <expected>
-#include <fstream>
-#include <optional>
-#include <string>
-#include <string_view>
-#include <vector>
+import :Common;
 
-class ConfTokenizer {
+import std;
+
+export class ConfTokenizer {
 public:
     using Token = Conf::Language::Token;
     using TokenKind = Conf::Language::TokenKind;
@@ -56,62 +52,9 @@ public:
     static std::optional<Token> eatPunctuator(std::ifstream& stream);
     static std::optional<Token> eatComment(std::ifstream& stream);
 
-    template<size_t N>
-    static constexpr std::optional<std::pair<TokenKind, TokenKind>> peekDelimitersFor(std::ifstream& stream, std::array<std::pair<TokenKind, std::string_view>, N> const& open_delimiters) {
-        using enum TokenKind;
+    template<std::size_t N>
+    static constexpr std::optional<std::pair<TokenKind, TokenKind>> peekDelimitersFor(std::ifstream& stream, std::array<std::pair<TokenKind, std::string_view>, N> const& open_delimiters);
 
-        size_t reset = stream.tellg();
-        std::array<char, 1024> token_buffer{};
-
-        auto punctuator_kind = UNKNOWN;
-        auto terminator_kind = UNKNOWN;
-        for (auto const& [kind, chunk] : open_delimiters) {
-            stream.read(&token_buffer[0], chunk.size());
-            if (std::string_view{token_buffer.data(), chunk.size()} == chunk) {
-                punctuator_kind = kind;
-                terminator_kind = ConfTokenizer::terminatorFor(punctuator_kind).value_or(UNKNOWN);
-                break;
-            } else {
-                stream.seekg(-chunk.size(), std::ios::cur);
-            }
-        }
-
-        if (punctuator_kind == UNKNOWN) {
-            stream.seekg(reset);
-            return std::nullopt;
-        }
-
-        if (terminator_kind == UNKNOWN) {
-            stream.seekg(reset);
-            return std::nullopt;
-        }
-
-        return std::make_pair(punctuator_kind, terminator_kind);
-    }
-
-    template<size_t N>
-    static constexpr std::optional<TokenKind> peekTokenFor(std::ifstream& stream, std::array<std::pair<TokenKind, std::string_view>, N> token_list) {
-        using enum TokenKind;
-
-        size_t reset = stream.tellg();
-        std::array<char, 1024> token_buffer{};
-
-        auto punctuator_kind = UNKNOWN;
-        for (auto const& [kind, chunk] : token_list) {
-            stream.read(&token_buffer[0], chunk.size());
-            if (std::string_view{token_buffer.data(), chunk.size()} == chunk) {
-                punctuator_kind = kind;
-                break;
-            } else {
-                stream.seekg(-chunk.size(), std::ios::cur);
-            }
-        }
-
-        if (punctuator_kind == UNKNOWN) {
-            stream.seekg(reset);
-            return std::nullopt;
-        }
-
-        return punctuator_kind;
-    }
+    template<std::size_t N>
+    static constexpr std::optional<TokenKind> peekTokenFor(std::ifstream& stream, std::array<std::pair<TokenKind, std::string_view>, N> token_list);
 };

@@ -1,10 +1,9 @@
-#pragma once
+export module Conf:Analyzer;
 
-#include <cstddef>
-#include <expected>
-#include <vector>
+import :Common;
+import std;
 
-class ConfAnalyzer {
+export class ConfAnalyzer {
 public:
     enum class Error {
         FILE_PATH_NOT_ABSOLUTE,
