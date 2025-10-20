@@ -1,8 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
-#include <print>
 
-using namespace Conf;
-using namespace Conf::Language;
+import std;
+import Conf;
 
 TEST_CASE("Tokenize Simple Configuration File", "[conftokenizer]") {
     SECTION("Top-Level Block Can Be Tokenized") {
