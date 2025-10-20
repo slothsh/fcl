@@ -1,4 +1,4 @@
-export module Types;
+export module Traits:Types;
 
 import std;
 

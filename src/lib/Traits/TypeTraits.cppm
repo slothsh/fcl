@@ -1,7 +1,7 @@
-export module TypeTraits;
+export module Traits:TypeTraits;
 
 import std;
-import Concepts;
+import :Concepts;
 
 export template <typename T>
 struct FunctionTraits;

@@ -2,7 +2,7 @@
 
 import std;
 import Conf;
-import Types;
+import Traits;
 
 using namespace Conf;
 using namespace Conf::Language;

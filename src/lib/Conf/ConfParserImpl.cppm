@@ -6,7 +6,7 @@ export module Conf:ParserImpl;
 
 import :Common;
 import :Parser;
-import Types;
+import Traits;
 import std;
 
 inline namespace {

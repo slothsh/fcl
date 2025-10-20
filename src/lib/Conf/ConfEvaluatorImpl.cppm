@@ -9,7 +9,7 @@ import :Tokenizer;
 import :Parser;
 import :Analyzer;
 import :Evaluator;
-import Types;
+import Traits;
 import std;
 
 inline namespace {

@@ -1,8 +1,7 @@
 export module Conf:Common;
 
 import std;
-import Concepts;
-import TypeTraits;
+import Traits;
 
 export namespace Conf {
 

@@ -1,7 +1,7 @@
-export module Concepts;
+export module Traits:Concepts;
 
 import std;
-import Types;
+import :Types;
 
 export template<typename T, typename... Ts>
 concept AnyOf = (std::same_as<T, Ts> || ...);

@@ -6,7 +6,7 @@ export module Conf:AnalyzerImpl;
 
 import :Common;
 import :Analyzer;
-import Types;
+import Traits;
 import std;
 
 #define FORWARD_VISITOR(member_function) \

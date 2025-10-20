@@ -1,5 +1,12 @@
 # include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
+set(TRAITS_MODULE_SRC_FILES
+    Traits/Types.cppm
+    Traits/Concepts.cppm
+    Traits/TypeTraits.cppm
+    Traits/Traits.cppm
+)
+
 set(CONF_MODULE_SRC_FILES
     Conf/ConfCommon.cppm
     Conf/ConfTokenizerImpl.cppm
@@ -32,9 +39,7 @@ target_sources(LibTrader
     FILE_SET cxx_modules
     TYPE CXX_MODULES
     FILES
-        Types.cppm
-        Concepts.cppm
-        TypeTraits.cppm
+        ${TRAITS_MODULE_SRC_FILES}
         ${CONF_MODULE_SRC_FILES}
 )
 
