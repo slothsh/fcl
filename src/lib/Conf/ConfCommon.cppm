@@ -481,7 +481,7 @@ concept SimpleExpression = AnyOf<
 
 } // END OF NAMESPACE `Conf::Number`
 
-template <>
+export template <>
 struct std::formatter<Conf::Language::TokenKind> : std::formatter<std::string_view> {
     using enum Conf::Language::TokenKind;
 
@@ -525,7 +525,7 @@ struct std::formatter<Conf::Language::TokenKind> : std::formatter<std::string_vi
     }
 };
 
-template <>
+export template <>
 struct std::formatter<Conf::Language::NodeKind> : std::formatter<std::string_view> {
     using enum Conf::Language::NodeKind;
 

@@ -1,8 +1,9 @@
 #include <catch2/catch_test_macros.hpp>
-#include <print>
-#include <variant>
 
-using namespace Conf;
+import std;
+import Conf;
+import Types;
+
 using namespace Conf::Language;
 
 void printAst(typename ConfParser::NodePtr const& node, int indent = 0) {

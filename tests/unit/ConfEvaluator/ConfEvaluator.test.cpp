@@ -1,6 +1,8 @@
 #include <catch2/catch_test_macros.hpp>
-#include <print>
-#include <variant>
+
+import std;
+import Conf;
+import Types;
 
 using namespace Conf;
 using namespace Conf::Language;
