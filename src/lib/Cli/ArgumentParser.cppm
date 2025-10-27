@@ -1,10 +1,8 @@
-#pragma once
+export module Cli:ArgumentParser;
 
-#include <string>
-#include <unordered_map>
-#include <variant>
+import std;
 
-class CommandLineArgumentParser {
+export class ArgumentParser {
 public:
     enum ArgumentKind : int {
         FLAG,

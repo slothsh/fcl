@@ -1,14 +1,12 @@
-#include <array>
-#include <memory>
-#include <print>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <sys/uio.h>
-#include <unistd.h>
-#include "Scheduler.hpp"
+module;
 
-namespace detail {
+#include "Common.hpp"
+
+export module Networking:Async.ConnectionHandlerImpl;
+
+import :Async.ConnectionHandler;
+
+inline namespace {
     using SchedulerType = typename ConnectionHandler::SchedulerType;
     using HandleType = typename ConnectionHandler::HandleType;
     using StringType = typename ConnectionHandler::StringType;
@@ -63,12 +61,12 @@ void ConnectionHandler::listen() {
     }
 }
 
-void ConnectionHandler::handleConnection(detail::HandleType client_handle) noexcept {
-    using String = detail::StringType;
+void ConnectionHandler::handleConnection(HandleType client_handle) noexcept {
+    using String = StringType;
     String message{};
     std::array<char, 1024> buffer{};
 
-    ssize_t bytes_received = 0;
+    std::size_t bytes_received = 0;
     do {
         std::println("Received: {}", bytes_received);
         message.append(buffer.begin(), bytes_received);

@@ -1,17 +1,16 @@
-#pragma once
+export module Networking:Async.Scheduler;
 
-#include <concepts>
-#include <cstddef>
-#include "ThreadPool.hpp"
+import Threading;
+import std;
 
-class Scheduler {
+export class Scheduler {
 public:
     enum Result : int {
         SUCCESS,
         FAILED,
     };
 
-    Scheduler(size_t total_workers);
+    Scheduler(std::size_t total_workers);
 
     template<typename F>
     inline Result enqueue(F&& function) {

@@ -1,11 +1,13 @@
-#pragma once
+module;
 
-#include "Macros.hpp"
-#include <unordered_map>
-#include <string>
-#include <string_view>
+#include "../Macros.hpp"
 
-class UserConfiguration {
+export module DynamicValue:UserConfiguration;
+
+import :ConfigValue;
+import std;
+
+export class UserConfiguration {
 public:
     using MapType = std::unordered_map<std::string, ConfigValue>;
 

@@ -1,4 +1,13 @@
-void MemoryTree::insert(void* data, size_t size) {
+module;
+
+#include "../Macros.hpp"
+
+export module Memory:MemoryTreeImpl;
+
+import :MemoryTree;
+import std;
+
+void MemoryTree::insert(void* data, std::size_t size) {
     if (!data) {
         // TODO: handle errors
         return;

@@ -1,22 +1,19 @@
-#include <algorithm>
-#include <array>
-#include <cctype>
-#include <cstddef>
-#include <format>
-#include <optional>
-#include <ranges>
-#include <string_view>
-#include <utility>
-#include <vector>
-#include <span>
+module;
 
-namespace detail {
-    using ArgumentType = typename CommandLineArgumentParser::ArgumentType;
-    using CommandLineArgumentsType = typename CommandLineArgumentParser::CommandLineArgumentsType;
+#include "../Macros.hpp"
+
+export module Cli:ArgumentParserImpl;
+
+import :ArgumentParser;
+import std;
+
+inline namespace {
+    using ArgumentType = typename ArgumentParser::ArgumentType;
+    using CommandLineArgumentsType = typename ArgumentParser::CommandLineArgumentsType;
 }
 
-static constexpr size_t ASCII_UPPERCASE_OFFSET = 65;
-static constexpr size_t ASCII_LOWERCASE_OFFSET = 97;
+static constexpr std::size_t ASCII_UPPERCASE_OFFSET = 65;
+static constexpr std::size_t ASCII_LOWERCASE_OFFSET = 97;
 static constexpr std::array<std::pair<char, const char*>, 52> SHORT_FLAG_MAP = {{
     { 'A', "-A" }, { 'B', "-B" }, 
     { 'C', "-C" }, { 'D', "-D" }, 
@@ -137,7 +134,7 @@ static std::optional<std::vector<std::string_view>> parseRestAsPositionals(std::
         | std::ranges::to<std::vector>();
 }
 
-static std::optional<std::string_view> parseNextAsValue(size_t current_index, std::span<char*> arguments) {
+static std::optional<std::string_view> parseNextAsValue(std::size_t current_index, std::span<char*> arguments) {
     if (current_index + 1 >= arguments.size()) {
         return std::nullopt;
     }
@@ -151,12 +148,12 @@ static std::optional<std::string_view> parseNextAsValue(size_t current_index, st
     return next_item;
 }
 
-detail::CommandLineArgumentsType CommandLineArgumentParser::parseArguments(int argc, char** argv) {
-    detail::CommandLineArgumentsType parsed_arguments;
+CommandLineArgumentsType ArgumentParser::parseArguments(int argc, char** argv) {
+    CommandLineArgumentsType parsed_arguments;
 
     auto const input_arguments = std::span(argv, argc);
 
-    for (size_t i = 0; i < static_cast<size_t>(argc); ++i) {
+    for (std::size_t i = 0; i < static_cast<std::size_t>(argc); ++i) {
         std::string_view const item = input_arguments[i];
 
         if (i == 0) {
@@ -177,7 +174,7 @@ detail::CommandLineArgumentsType CommandLineArgumentParser::parseArguments(int a
                 });
             }
         } else if (auto const parsed = parseCompoundShortFlag(item); parsed) {
-            for (size_t parsed_index = 0; auto const& flag : parsed.value()) {
+            for (std::size_t parsed_index = 0; auto const& flag : parsed.value()) {
                 auto next_value = parseNextAsValue(i, input_arguments);
 
                 if (parsed_index < parsed->size() - 1) {

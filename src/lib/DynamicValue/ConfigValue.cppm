@@ -1,11 +1,9 @@
-#pragma once
+export module DynamicValue:ConfigValue;
 
-#include <concepts>
-#include <optional>
-#include <utility>
-#include <string>
+import Traits;
+import std;
 
-class ConfigValue {
+export class ConfigValue {
 public:
     template<typename T>
         requires std::same_as<ConfigBoolean, std::remove_cvref<T>>

@@ -1,21 +1,15 @@
-#pragma once
+export module Threading:ThreadPool;
 
-#include <concepts>
-#include <deque>
-#include <unordered_map>
-#include <cstddef>
-#include <thread>
-#include <functional>
-#include <random>
+import std;
 
-class ThreadPool {
+export class ThreadPool {
 public:
     enum Result {
         SUCCESS,
         FAILED,
     };
 
-    using IdType = size_t;
+    using IdType = std::size_t;
     using FnType = std::function<Result(IdType)>;
     using PairType = std::pair<IdType, FnType>;
     using WorkerType = std::thread;
@@ -26,7 +20,7 @@ public:
     static std::mt19937_64 s_generator;
     static std::uniform_int_distribution<IdType> s_distribution;
 
-    ThreadPool(size_t total_workers);
+    ThreadPool(std::size_t total_workers);
 
     Result startWorkers();
     Result joinAll();
@@ -51,7 +45,7 @@ public:
     }
 
 private:
-    size_t m_size;
+    std::size_t m_size;
     PoolType m_workers;
     QueueType m_queue;
 };

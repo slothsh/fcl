@@ -1,69 +1,22 @@
-#pragma once
+module;
 
-#include <type_traits>
-#include <cstddef>
+#include "../Macros.hpp"
 
-template<typename T>
-class Arena {
-public:
-    using ValueType = std::remove_cvref_t<T>;
-    using PointerType = ValueType*;
-    using VoidPointer = void*;
+export module Memory:ArenaAllocator;
 
-    Arena() = default;
+import :Arena;
+import std;
 
-    Arena(size_t size)
-        : m_capacity{size}
-        , m_offset{0}
-        , m_data_start{new ValueType[size]}
-    {}
-
-    ~Arena() {
-        if (m_data_start) {
-            delete[] static_cast<PointerType>(m_data_start);
-        }
-    }
-
-    PointerType allocateN(size_t n) {
-        auto const new_offset = m_offset + sizeof(ValueType) * n;
-
-        if (!(new_offset < m_capacity)) {
-            TODO("not implemented");
-        }
-
-        m_offset = new_offset;
-
-        return static_cast<PointerType>(m_data_start) + m_offset;
-    }
-
-    PointerType deallocate(PointerType ptr, size_t n) {
-        auto const new_offset = m_offset + sizeof(ValueType) * n;
-
-        if (!(new_offset < m_capacity)) {
-            TODO("not implemented");
-        }
-
-        m_offset = new_offset;
-
-        return static_cast<PointerType>(m_data_start) + m_offset;
-    }
-
-private:
-    size_t m_capacity;
-    size_t m_offset;
-    VoidPointer m_data_start;
-};
-
-template<typename T>
+export template<typename T>
 class ArenaAllocator {
 public:
-    static constexpr size_t ARENA_DEFAULT_SIZE = 4 * 1024;
+    static constexpr std::size_t ARENA_DEFAULT_SIZE = 4 * 1024;
 
     using pointer = std::remove_cvref_t<T>*;
     using void_pointer = std::nullptr_t;
     using const_void_pointer = std::add_const_t<std::nullptr_t>;
     using value_type = std::remove_cvref_t<T>;
-    using size_type = size_t;
+    using size_type = std::size_t;
 
     using ArenaType = Arena<T>;
 

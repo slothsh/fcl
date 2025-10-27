@@ -1,23 +1,19 @@
-#pragma once
+module;
 
-#include <memory>
-#include <cstddef>
-#include <string>
-#include <string_view>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-#include "Scheduler.hpp"
-#include "ArenaAllocator.hpp"
+#include "Common.hpp"
 
-#define SOCKET_PATH_STR "/tmp/img-service"
+export module Networking:Async.ConnectionHandler;
 
-class ConnectionHandler {
+import :Async.Scheduler;
+import Memory;
+import std;
+
+export class ConnectionHandler {
 public:
     static constexpr std::string_view SOCKET_PATH = SOCKET_PATH_STR;
-    static constexpr size_t CONNECTION_BUFFER_SIZE = 1024;
+    static constexpr std::size_t CONNECTION_BUFFER_SIZE = 1024;
     static constexpr int MAX_LISTEN_QUEUE = 4;
-    static constexpr size_t MAX_WORKER_THREADS = 4;
+    static constexpr std::size_t MAX_WORKER_THREADS = 4;
 
     using CharType = char;
     using HandleType = int;

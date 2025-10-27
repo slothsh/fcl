@@ -1,16 +1,16 @@
-#pragma once
+export module Memory:MemoryTree;
 
-#include <cstddef>
+import std;
 
-class MemoryTree {
+export class MemoryTree {
 public:
-    void insert(void* data, size_t size);
+    void insert(void* data, std::size_t size);
     MemoryTree* descendLeft();
     MemoryTree* descendRight();
 
 private:
     void* m_data = nullptr;
-    size_t m_size = 0;
+    std::size_t m_size = 0;
     MemoryTree* m_left = nullptr;
     MemoryTree* m_right = nullptr;
 };

@@ -1,3 +1,8 @@
+export module DynamicValue:ConfigValueImpl;
+
+import :ConfigValue;
+import std;
+
 ConfigValue::ConfigValue(ConfigValue const& config_value) {
     m_kind = config_value.m_kind;
     switch (config_value.m_kind) {
