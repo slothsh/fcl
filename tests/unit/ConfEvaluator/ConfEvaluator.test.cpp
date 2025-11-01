@@ -87,7 +87,7 @@ TEST_CASE("Load Simple Configuration File", "[confloader]") {
         std::println("size: {}", conf_loader.m_symbol_table.table.size());
         for (auto& [key, value] : conf_loader.m_symbol_table.table) {
             for (auto& ns : value.namespaces) {
-                std::print("{}::", ns);
+                std::print("{}.", ns);
             }
             std::println("{}", value.name);
         }

@@ -8,10 +8,13 @@ inline namespace {
 }
 
 export struct Symbol {
+    Symbol() = delete;
+    explicit constexpr Symbol(std::string_view name, NamespaceType const& namespaces, Node* node, SymbolConstantness constantness);
+
+    static std::string toFullyQualifiedName(Symbol&& symbol);
+
     std::string_view name;
     NamespaceType namespaces;
+    Node* node;
     SymbolConstantness constantness;
-    // TODO: aliases
-
-    explicit constexpr Symbol(std::string_view _name, NamespaceType const& namespaces, SymbolConstantness constantness);
 };

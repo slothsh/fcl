@@ -23,6 +23,7 @@ inline namespace {
 
 ConfEvaluator::ConfEvaluator(std::string_view config_file_path) noexcept
     : m_symbol_table{}
+    , m_namespace_buffer{}
     , m_ast{nullptr}
     , m_config_file_path{std::filesystem::weakly_canonical(config_file_path)}
 {}
@@ -56,9 +57,7 @@ std::expected<void, Error> ConfEvaluator::analyzeAst() const {
 }
 
 std::expected<void, Error> ConfEvaluator::preProcess() {
-    StaticVector<std::string_view, SYMBOL_NAMESPACES_SIZE> namespace_buffer{};
-
-    auto r = this->visitSymbolTable(m_ast, namespace_buffer)
+    auto r = this->visitSymbolTable(m_ast)
         .and_then([this]() { return this->visitIncludes(m_ast); });
 
     return r;
@@ -102,42 +101,42 @@ std::expected<void, Error> ConfEvaluator::evaluate(NodePtr& ast) const {
     return std::visit(visitor, *ast);
 }
 
-std::expected<void, Error> ConfEvaluator::visitSymbolTable(NodePtr& ast, StaticVector<std::string_view, SYMBOL_NAMESPACES_SIZE>& namespace_buffer) {
+std::expected<void, Error> ConfEvaluator::visitSymbolTable(NodePtr& ast) {
     using ReturnType = std::expected<void, Error>;
 
     auto const visitor = Visitors {
-        [this, &namespace_buffer](NamedBlock& named_block) -> ReturnType {
-            auto const namespace_result = namespace_buffer.tryEmplaceBack(named_block.name.data);
+        [this](NamedBlock& named_block) -> ReturnType {
+            auto const namespace_result = m_namespace_buffer.tryEmplaceBack(named_block.name.data);
             if (!namespace_result) {
                 return std::unexpected(FAILED_TO_BUILD_SYMBOL_TABLE);
             }
 
             for (auto& child : named_block.nodes) {
-                auto recurse_result = this->visitSymbolTable(child, namespace_buffer);
+                auto recurse_result = this->visitSymbolTable(child);
                 if (!recurse_result) {
                     return std::unexpected(FAILED_TO_BUILD_SYMBOL_TABLE);
                 }
             }
 
-            auto _ = namespace_buffer.popBack();
+            auto _ = m_namespace_buffer.popBack();
             
             return {};
         },
 
-        [this, &namespace_buffer](VariableAssignmentExpression& variable_expression) -> ReturnType {
-            return m_symbol_table.emplaceSymbol(variable_expression.me, std::string_view{variable_expression.name.data}, namespace_buffer, SymbolConstantness::VARIABLE)
+        [this](VariableAssignmentExpression& variable_expression) -> ReturnType {
+            return m_symbol_table.emplaceSymbol(std::string_view{variable_expression.name.data}, m_namespace_buffer, variable_expression.me, SymbolConstantness::VARIABLE)
                 .transform_error([](auto&&) -> Error {
                     return FAILED_TO_BUILD_SYMBOL_TABLE;
                 });
         },
-        [this, &namespace_buffer](ConstantAssignmentExpression& constant_expression) -> ReturnType {
-            return m_symbol_table.emplaceSymbol(constant_expression.me, std::string_view{constant_expression.name.data}, namespace_buffer, SymbolConstantness::CONSTANT)
+        [this](ConstantAssignmentExpression& constant_expression) -> ReturnType {
+            return m_symbol_table.emplaceSymbol(std::string_view{constant_expression.name.data}, m_namespace_buffer, constant_expression.me, SymbolConstantness::CONSTANT)
                 .transform_error([](auto&&) -> Error {
                     return FAILED_TO_BUILD_SYMBOL_TABLE;
                 });
         },
 
-        [this, &namespace_buffer]<HasNodeKind T>(T& ast) -> ReturnType {
+        [this]<HasNodeKind T>(T& ast) -> ReturnType {
             constexpr bool has_children = AnyOf<
                 T,
                 FilePathRootBlock,
@@ -146,7 +145,7 @@ std::expected<void, Error> ConfEvaluator::visitSymbolTable(NodePtr& ast, StaticV
 
             if constexpr (has_children) {
                 for (auto& child : ast.nodes) {
-                    auto recurse_result = this->visitSymbolTable(child, namespace_buffer);
+                    auto recurse_result = this->visitSymbolTable(child);
                     if (!recurse_result) {
                         return std::unexpected(FAILED_TO_BUILD_SYMBOL_TABLE);
                     }
@@ -207,7 +206,8 @@ std::expected<void, Error> ConfEvaluator::visitIncludes(NodePtr& ast) {
                 return std::unexpected(FAILED_TO_PARSE);
             }
 
-            auto recursed_include_ast = this->visitIncludes(include_ast.value());
+            auto recursed_include_ast = this->visitSymbolTable(include_ast.value())
+                .and_then([this, &include_ast]() { return this->visitIncludes(include_ast.value()); });
             if (!recursed_include_ast) {
                 return recursed_include_ast;
             }
@@ -215,17 +215,35 @@ std::expected<void, Error> ConfEvaluator::visitIncludes(NodePtr& ast) {
             return this->visitSpliceIncludes(keyword_statement.parent, keyword_statement.me, include_ast.value());
         },
 
+        [&](NamedBlock& named_block) -> std::expected<void, Error> {
+            auto const namespace_result = m_namespace_buffer.tryEmplaceBack(named_block.name.data);
+            if (!namespace_result) {
+                return std::unexpected(FAILED_TO_RESOLVE_INCLUDES);
+            }
+
+            for (auto& child : named_block.nodes) {
+                auto recurse_result = this->visitSymbolTable(child)
+                    .and_then([this, &child]() { return this->visitIncludes(child); });
+                if (!recurse_result) {
+                    return std::unexpected(FAILED_TO_RESOLVE_INCLUDES);
+                }
+            }
+
+            auto _ = m_namespace_buffer.popBack();
+
+            return {};
+        },
+
         [&]<HasNodeKind T>(T& ast) -> std::expected<void, Error> {
             constexpr bool has_children = AnyOf<
                 T,
                 FilePathRootBlock,
-                FilePathSubRootBlock,
-                NamedBlock
+                FilePathSubRootBlock
             >;
 
             if constexpr (has_children) {
                 for (auto& child : ast.nodes) {
-                    auto _ = this->visitIncludes(child);
+                    return this->visitIncludes(child);
                 }
             }
 

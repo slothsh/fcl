@@ -204,6 +204,7 @@ inline constexpr std::string_view STRING_SPACE               = " ";
 // Single Character Strings
 inline constexpr std::string_view STRING_SEMI_COLON          = ";";
 inline constexpr std::string_view STRING_COMMA               = ",";
+inline constexpr std::string_view STRING_PERIOD              = ".";
 
 // Single Delimiter Strings
 inline constexpr std::string_view STRING_COMMENT_SINGLE_LINE = "#";

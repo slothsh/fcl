@@ -15,10 +15,10 @@ export struct SymbolTable {
     };
 
     template<typename... Args>
-    std::expected<void, Error> emplaceSymbol(Node* node, Args... args) noexcept {
-        this->table.try_emplace(node, std::forward<Args>(args)...);
+    std::expected<void, Error> emplaceSymbol(Args&&... args) noexcept {
+        this->table.try_emplace(Symbol::toFullyQualifiedName(Symbol { std::forward<Args>(args)... }), std::forward<Args>(args)...);
         return {};
     }
 
-    std::unordered_map<Node*, Symbol> table;
+    std::unordered_map<std::string, Symbol> table;
 };

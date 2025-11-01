@@ -18,7 +18,7 @@ import Traits;
 // TODO: std iterators complaint
 // TODO: fix const correctness
 export template<typename T, std::size_t Capacity>
-class StaticVector {
+class StaticVector : public std::ranges::view_interface<StaticVector<T, Capacity>> {
 public:
     enum class Error {
         FAILED_TO_PUSH_MAX_SIZE_REACHED,
@@ -36,6 +36,17 @@ public:
     }
 
     constexpr StaticVector operator=(StaticVector const& rhs) {
+        m_size = rhs.m_size;
+        std::ranges::copy(rhs.m_data, this->m_data);
+        return *this;
+    }
+
+    constexpr StaticVector(StaticVector&& rhs) noexcept {
+        m_size = rhs.m_size;
+        std::ranges::copy(rhs.m_data, this->m_data);
+    }
+
+    constexpr StaticVector& operator=(StaticVector&& rhs) noexcept {
         m_size = rhs.m_size;
         std::ranges::copy(rhs.m_data, this->m_data);
         return *this;
@@ -213,6 +224,11 @@ public:
 
     Iterator end() {
         return Iterator{m_data, typename Iterator::difference_type(m_size)};
+    }
+
+    template<typename F>
+    friend constexpr decltype(auto) operator|(StaticVector&& vector, F&& function) {
+        return std::forward<F>(function)(Iterator{vector.m_data, typename Iterator::difference_type(0)});
     }
 
 private:
