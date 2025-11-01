@@ -75,21 +75,17 @@ void printAst(NodePtr const& node, int indent = 0) {
 
 TEST_CASE("Load Simple Configuration File", "[confloader]") {
     SECTION("Conf file can be loaded") {
-        auto conf_loader = ConfEvaluator{"./data/Config.conf"};
-        auto const result = conf_loader.load();
+        auto conf_evaluator = ConfEvaluator{"./data/Config.conf"};
+        auto const result = conf_evaluator.load();
 
-        // printAst(conf_loader.ast());
+        // printAst(conf_evaluator.ast());
 
         if (!result) {
             FAIL("Loading config @ ./data/Config.conf failed");
         }
 
-        std::println("size: {}", conf_loader.m_symbol_table.table.size());
-        for (auto& [key, value] : conf_loader.m_symbol_table.table) {
-            for (auto& ns : value.namespaces) {
-                std::print("{}.", ns);
-            }
-            std::println("{}", value.name);
+        for (auto const& [key, value] : conf_evaluator.m_symbol_table.table) {
+            std::println("{}", key);
         }
 
         REQUIRE(1 == 1);
