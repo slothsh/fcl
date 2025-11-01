@@ -10,6 +10,7 @@ import :Parser;
 import :Analyzer;
 import :Evaluator;
 import Traits;
+import Containers;
 import std;
 
 inline namespace {
@@ -21,7 +22,8 @@ inline namespace {
 }
 
 ConfEvaluator::ConfEvaluator(std::string_view config_file_path) noexcept
-    : m_ast{nullptr}
+    : m_symbol_table{}
+    , m_ast{nullptr}
     , m_config_file_path{std::filesystem::weakly_canonical(config_file_path)}
 {}
 
@@ -54,7 +56,12 @@ std::expected<void, Error> ConfEvaluator::analyzeAst() const {
 }
 
 std::expected<void, Error> ConfEvaluator::preProcess() {
-    return this->visitIncludes(m_ast);
+    StaticVector<std::string_view, SYMBOL_NAMESPACES_SIZE> namespace_buffer{};
+
+    auto r = this->visitSymbolTable(m_ast, namespace_buffer)
+        .and_then([this]() { return this->visitIncludes(m_ast); });
+
+    return r;
 }
 
 std::expected<void, Error> ConfEvaluator::evaluate(NodePtr& ast) const {
@@ -69,7 +76,6 @@ std::expected<void, Error> ConfEvaluator::evaluate(NodePtr& ast) const {
             if (keyword_statement.keyword.kind == KEYWORD_PRINT) {
                 auto const& arg1 = get_argument_checked<KeywordPrint::StringArg>(keyword_statement.arguments);
                 auto const& arg2 = get_argument_checked<KeywordPrint::NumberArg>(keyword_statement.arguments);
-                INFO("{} {}", arg1, arg2);
             }
 
             return {};
@@ -91,6 +97,64 @@ std::expected<void, Error> ConfEvaluator::evaluate(NodePtr& ast) const {
 
             return {};
         }
+    };
+
+    return std::visit(visitor, *ast);
+}
+
+std::expected<void, Error> ConfEvaluator::visitSymbolTable(NodePtr& ast, StaticVector<std::string_view, SYMBOL_NAMESPACES_SIZE>& namespace_buffer) {
+    using ReturnType = std::expected<void, Error>;
+
+    auto const visitor = Visitors {
+        [this, &namespace_buffer](NamedBlock& named_block) -> ReturnType {
+            auto const namespace_result = namespace_buffer.tryEmplaceBack(named_block.name.data);
+            if (!namespace_result) {
+                return std::unexpected(FAILED_TO_BUILD_SYMBOL_TABLE);
+            }
+
+            for (auto& child : named_block.nodes) {
+                auto recurse_result = this->visitSymbolTable(child, namespace_buffer);
+                if (!recurse_result) {
+                    return std::unexpected(FAILED_TO_BUILD_SYMBOL_TABLE);
+                }
+            }
+
+            auto _ = namespace_buffer.popBack();
+            
+            return {};
+        },
+
+        [this, &namespace_buffer](VariableAssignmentExpression& variable_expression) -> ReturnType {
+            return m_symbol_table.emplaceSymbol(variable_expression.me, std::string_view{variable_expression.name.data}, namespace_buffer, SymbolConstantness::VARIABLE)
+                .transform_error([](auto&&) -> Error {
+                    return FAILED_TO_BUILD_SYMBOL_TABLE;
+                });
+        },
+        [this, &namespace_buffer](ConstantAssignmentExpression& constant_expression) -> ReturnType {
+            return m_symbol_table.emplaceSymbol(constant_expression.me, std::string_view{constant_expression.name.data}, namespace_buffer, SymbolConstantness::CONSTANT)
+                .transform_error([](auto&&) -> Error {
+                    return FAILED_TO_BUILD_SYMBOL_TABLE;
+                });
+        },
+
+        [this, &namespace_buffer]<HasNodeKind T>(T& ast) -> ReturnType {
+            constexpr bool has_children = AnyOf<
+                T,
+                FilePathRootBlock,
+                FilePathSubRootBlock
+            >;
+
+            if constexpr (has_children) {
+                for (auto& child : ast.nodes) {
+                    auto recurse_result = this->visitSymbolTable(child, namespace_buffer);
+                    if (!recurse_result) {
+                        return std::unexpected(FAILED_TO_BUILD_SYMBOL_TABLE);
+                    }
+                }
+            }
+
+            return {};
+        },
     };
 
     return std::visit(visitor, *ast);

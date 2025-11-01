@@ -7,6 +7,9 @@ export template<typename T, typename... Ts>
 concept AnyOf = (std::same_as<T, Ts> || ...);
 
 export template<typename T, typename... Ts>
+concept AllOf = (std::same_as<T, Ts> && ...);
+
+export template<typename T, typename... Ts>
 concept Number = std::floating_point<T> || std::integral<T>;
 
 export template<typename T, typename... Ts>

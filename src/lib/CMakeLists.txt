@@ -18,6 +18,12 @@ set(
 )
 
 set(
+    CONTAINERS_MODULE_SRC_FILES
+        Containers/StaticVector.cppm
+        Containers/Containers.cppm
+)
+
+set(
     THREADING_MODULE_SRC_FILES
         Threading/ThreadPoolImpl.cppm
         Threading/ThreadPool.cppm
@@ -52,6 +58,10 @@ set(
 
 set(
     CONF_MODULE_SRC_FILES
+        Conf/SymbolImpl.cppm
+        Conf/Symbol.cppm
+        Conf/SymbolTableImpl.cppm
+        Conf/SymbolTable.cppm
         Conf/ConfCommon.cppm
         Conf/ConfTokenizerImpl.cppm
         Conf/ConfTokenizer.cppm
@@ -74,6 +84,7 @@ target_sources(
     FILES
         ${TRAITS_MODULE_SRC_FILES}
         ${MEMORY_MODULE_SRC_FILES}
+        ${CONTAINERS_MODULE_SRC_FILES}
         ${THREADING_MODULE_SRC_FILES}
         ${NETWORKING_MODULE_SRC_FILES}
         ${CLI_MODULE_SRC_FILES}

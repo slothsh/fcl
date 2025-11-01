@@ -123,7 +123,7 @@ std::optional<char> ConfTokenizer::peekEscapedCharacter(std::ifstream& stream) {
 
 std::optional<std::pair<TokenKind, std::string>> ConfTokenizer::peekNumberToken(std::ifstream& stream) {
     std::size_t reset = stream.tellg();
-    std::array<char, 1024> token_buffer{};
+    std::array<char, TOKENIZER_BUFFER_SIZE> token_buffer{};
 
     auto const check_hexadecimal = [&]() -> std::optional<std::size_t> {
         stream.read(token_buffer.data(), 2);
@@ -242,7 +242,7 @@ std::optional<std::pair<TokenKind, std::string>> ConfTokenizer::peekNumberToken(
 
 std::optional<std::pair<TokenKind, std::string>> ConfTokenizer::peekPathToken(std::ifstream& stream) {
     std::size_t reset = stream.tellg();
-    std::array<char, 1024> token_buffer{};
+    std::array<char, TOKENIZER_BUFFER_SIZE> token_buffer{};
 
     auto const valid_next_token = [](char c) {
         return !ConfTokenizer::isSpace(c)
@@ -432,7 +432,7 @@ std::optional<Token> ConfTokenizer::eatKeyword(std::ifstream& stream) {
     }
 
     std::size_t cursor = 0;
-    std::array<char, 1024> token_buffer{};
+    std::array<char, TOKENIZER_BUFFER_SIZE> token_buffer{};
 
     std::size_t reset = stream.tellg();
 
@@ -463,7 +463,7 @@ std::optional<Token> ConfTokenizer::eatKeyword(std::ifstream& stream) {
 
 std::optional<Token> ConfTokenizer::eatIdentifier(std::ifstream& stream) {
     std::size_t cursor = 0;
-    std::array<char, 1024> token_buffer{};
+    std::array<char, TOKENIZER_BUFFER_SIZE> token_buffer{};
 
     if (!ConfTokenizer::isIdentifierStart(stream.peek())) {
         return std::nullopt;
@@ -485,7 +485,7 @@ std::optional<Token> ConfTokenizer::eatIdentifier(std::ifstream& stream) {
 
 std::optional<Token> ConfTokenizer::eatShellLiteral(std::ifstream& stream) {
     std::size_t cursor = 0;
-    std::array<char, 1024> token_buffer{};
+    std::array<char, TOKENIZER_BUFFER_SIZE> token_buffer{};
     std::size_t reset = stream.tellg();
 
     auto const delimiters = ConfTokenizer::peekDelimitersFor(stream, SHELL_LITERAL_OPEN_PUNCTUATORS);
@@ -524,7 +524,7 @@ std::optional<Token> ConfTokenizer::eatShellLiteral(std::ifstream& stream) {
 std::optional<Token> ConfTokenizer::eatLiteral(std::ifstream& stream) {
     std::size_t reset = stream.tellg();
     std::size_t cursor = 0;
-    std::array<char, 1024> token_buffer{};
+    std::array<char, TOKENIZER_BUFFER_SIZE> token_buffer{};
 
     if (ConfTokenizer::isStringLiteralStart(stream.peek())) {
         auto const delimiters = ConfTokenizer::peekDelimitersFor(stream, STRING_LITERAL_OPEN_PUNCTUATORS);
@@ -573,7 +573,7 @@ std::optional<Token> ConfTokenizer::eatLiteral(std::ifstream& stream) {
 
 std::optional<Token> ConfTokenizer::eatSpaces(std::ifstream& stream) {
     std::size_t cursor = 0;
-    std::array<char, 1024> token_buffer{};
+    std::array<char, TOKENIZER_BUFFER_SIZE> token_buffer{};
     auto token_kind = UNKNOWN;
 
     switch (stream.peek()) {
@@ -643,7 +643,7 @@ std::optional<Token> ConfTokenizer::eatPunctuator(std::ifstream& stream) {
 
 std::optional<Token> ConfTokenizer::eatComment(std::ifstream& stream) {
     std::size_t cursor = 0;
-    std::array<char, 1024> token_buffer{};
+    std::array<char, TOKENIZER_BUFFER_SIZE> token_buffer{};
 
     if (!ConfTokenizer::isCommentStart(stream.peek())) {
         return std::nullopt;
@@ -669,7 +669,7 @@ constexpr std::optional<std::pair<TokenKind, TokenKind>> ConfTokenizer::peekDeli
     using enum TokenKind;
 
     std::size_t reset = stream.tellg();
-    std::array<char, 1024> token_buffer{};
+    std::array<char, TOKENIZER_BUFFER_SIZE> token_buffer{};
 
     auto punctuator_kind = UNKNOWN;
     auto terminator_kind = UNKNOWN;
@@ -702,7 +702,7 @@ constexpr std::optional<TokenKind> ConfTokenizer::peekTokenFor(std::ifstream& st
     using enum TokenKind;
 
     std::size_t reset = stream.tellg();
-    std::array<char, 1024> token_buffer{};
+    std::array<char, TOKENIZER_BUFFER_SIZE> token_buffer{};
 
     auto punctuator_kind = UNKNOWN;
     for (auto const& [kind, chunk] : token_list) {

@@ -2,6 +2,7 @@ export module Conf:Common;
 
 import std;
 import Traits;
+import Containers;
 
 export namespace Conf {
 
@@ -136,9 +137,15 @@ std::optional<T> fromBinaryString(S const& number_string) noexcept {
 
 export namespace Conf::Language {
 
+// Static Constants
+// TODO: Other magic number constants
+inline constexpr std::size_t TOKENIZER_BUFFER_SIZE = 1024;
+inline constexpr std::size_t SYMBOL_NAMESPACES_SIZE = 128;
+
 // Common Types
 using NumberType = double;
 using PathType = std::filesystem::path;
+using NamespaceType = StaticVector<std::string_view, SYMBOL_NAMESPACES_SIZE>;
 
 // Tokenizer
 
@@ -430,6 +437,13 @@ struct KeywordPrint : FunctionSchemaTraits<
     using NumberArg = std::tuple_element_t<1, typename KeywordPrint::Unwrappers>;
 };
 
+// Enums
+
+enum class SymbolConstantness {
+    VARIABLE,
+    CONSTANT,
+};
+
 // Function/Keyword Helpers
 
 template<IsFunctionArgument ArgName, IsSubscriptable<typename ArgName::VariantType> Args>
@@ -476,6 +490,13 @@ concept SimpleExpression = AnyOf<
     T,
     StringExpression,
     PathExpression
+>;
+
+template<typename T>
+concept IsAssignmentExpression = AnyOf<
+    T,
+    VariableAssignmentExpression,
+    ConstantAssignmentExpression
 >;
 
 } // END OF NAMESPACE `Conf::Number`
@@ -546,5 +567,22 @@ struct std::formatter<Conf::Language::NodeKind> : std::formatter<std::string_vie
     template <typename FormatContext>
     auto format(Conf::Language::NodeKind kind, FormatContext& ctx) const {
         return std::formatter<std::string_view>::format(to_string(kind), ctx);
+    }
+};
+
+export template <>
+struct std::formatter<Conf::Language::SymbolConstantness> : std::formatter<std::string_view> {
+    using enum Conf::Language::SymbolConstantness;
+
+    static constexpr std::string_view to_string(Conf::Language::SymbolConstantness constantness) {
+        switch (constantness) {
+            case VARIABLE: return "VARIABLE";
+            case CONSTANT: return "CONSTANT";
+        }
+    }
+
+    template <typename FormatContext>
+    auto format(Conf::Language::SymbolConstantness constantness, FormatContext& ctx) const {
+        return std::formatter<std::string_view>::format(to_string(constantness), ctx);
     }
 };
