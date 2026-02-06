@@ -11,6 +11,9 @@ macro(set_global_options)
     set(CMAKE_CXX_EXTENSIONS OFF)
     set(CMAKE_CXX_STANDARD 26)
     set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
+
+    # Project globals
+    set(PROJECT_LIBRARY_TARGET fcl)
 endmacro()
 
 macro(prepare_toolchain)

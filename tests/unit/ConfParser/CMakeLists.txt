@@ -2,10 +2,5 @@
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/data" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
 
 # Tests
-add_executable(ConfParser.test ConfParser.test.cpp)
-add_dependencies(ConfParser.test precompile_std)
-target_compile_options(ConfParser.test PRIVATE -fmodule-file=std=${STD_PCM})
-target_link_options(ConfParser.test PRIVATE -stdlib=libc++)
-target_link_libraries(ConfParser.test PRIVATE Catch2::Catch2WithMain LibTrader)
-
+add_test_target(ConfParser.test ConfParser.test.cpp)
 catch_discover_tests(ConfParser.test)

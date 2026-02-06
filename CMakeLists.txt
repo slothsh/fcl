@@ -8,3 +8,4 @@ initialize_toolchain()
 project(fcl VERSION 0.0.0 LANGUAGES CXX)
 
 add_subdirectory(src/)
+add_subdirectory(tests/)
