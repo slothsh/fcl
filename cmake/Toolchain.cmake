@@ -2,7 +2,52 @@
 
 macro(initialize_toolchain)
     set_global_options()
+    prepare_cpm()
     prepare_toolchain()
+    include(cmake/Vendor.cmake)
+endmacro()
+
+macro(prepare_cpm)
+    set(CPM_SOURCE_PATH "cmake/CPM.cmake")
+    set(CPM_DOWNLOAD_URL "https://github.com/cpm-cmake/CPM.cmake/releases/download/v0.40.8/CPM.cmake")
+    set(CPM_EXPECTED_HASH "78ba32abdf798bc616bab7c73aac32a17bbd7b06ad9e26a6add69de8f3ae4791")
+
+    if(NOT EXISTS ${CPM_SOURCE_PATH})
+        message(STATUS "CPM source file does not exist, downloading...")
+        set(NEED_DOWNLOAD TRUE)
+    else()
+        file(SHA256 ${CPM_SOURCE_PATH} FILE_HASH)
+        string(REPLACE "SHA256=" "" EXPECTED_HASH_VALUE ${CPM_EXPECTED_HASH})
+        
+        if(NOT FILE_HASH STREQUAL EXPECTED_HASH_VALUE)
+            message(STATUS "CPM file hash mismatch")
+            message(STATUS "  Expected: ${EXPECTED_HASH_VALUE}")
+            message(STATUS "  Got:      ${FILE_HASH}")
+            message(STATUS "Re-downloading")
+            set(NEED_DOWNLOAD TRUE)
+        endif()
+    endif()
+
+    if(NEED_DOWNLOAD)
+        file(DOWNLOAD
+            ${CPM_DOWNLOAD_URL}
+            "${CMAKE_SOURCE_DIR}/${CPM_SOURCE_PATH}"
+            EXPECTED_HASH SHA256=${CPM_EXPECTED_HASH}
+            SHOW_PROGRESS
+            STATUS download_status
+            TIMEOUT 60
+        )
+
+        list(GET download_status 0 status_code)
+        if(NOT status_code EQUAL 0)
+            list(GET download_status 1 error_message)
+            message(FATAL_ERROR "CPM download failed: ${error_message}")
+        endif()
+    endif()
+
+    if(EXISTS ${CPM_SOURCE_PATH})
+        include(${CPM_SOURCE_PATH})
+    endif()
 endmacro()
 
 macro(set_global_options)
@@ -20,7 +65,7 @@ macro(prepare_toolchain)
     if(UNIX AND NOT APPLE)
         message(FATAL_ERROR "todo: not implemented")
     elseif(APPLE)
-        message(STATUS "Preparing toolchain for ${CMAKE_SYSTEM_NAME}")
+        message(STATUS "Preparing toolchain for Apple/Darwin")
 
         find_package_manager_brew(BREW_COMMAND)
 

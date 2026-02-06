@@ -1,7 +1,6 @@
 function(find_package_manager_brew COMMAND)
     find_program(BREW_COMMAND brew)
     if(BREW_COMMAND)
-        message(STATUS "Package Manager: Homebrew not found")
         set(${COMMAND} ${BREW_COMMAND} PARENT_SCOPE)
     endif()
 endfunction()
