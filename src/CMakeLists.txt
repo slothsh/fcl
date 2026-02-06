@@ -2,19 +2,10 @@ file(GLOB_RECURSE TRAITS_MODULE_SRC_FILES Traits/*.cppm)
 file(GLOB_RECURSE CONTAINERS_MODULE_SRC_FILES Containers/*.cppm)
 file(GLOB_RECURSE CONF_MODULE_SRC_FILES Conf/*.cppm)
 
-add_library(${PROJECT_LIBRARY_TARGET})
-
-target_sources(
+add_library_target(
     ${PROJECT_LIBRARY_TARGET}
-    PUBLIC
-    FILE_SET cxx_modules
-    TYPE CXX_MODULES
-    FILES
+    MODULE_FILES
         ${TRAITS_MODULE_SRC_FILES}
         ${CONTAINERS_MODULE_SRC_FILES}
         ${CONF_MODULE_SRC_FILES}
 )
-
-add_dependencies(${PROJECT_LIBRARY_TARGET} ${CXX_TARGET_PRECOMPILED_STD})
-target_compile_options(${PROJECT_LIBRARY_TARGET} PRIVATE -fmodule-file=std=${CXX_STD_PCM})
-target_link_options(${PROJECT_LIBRARY_TARGET} PRIVATE -stdlib=libc++)

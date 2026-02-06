@@ -1,9 +1,4 @@
-#!/bin/sh
+#!/bin/sh -xeu
 
-function main() {
-    set -xe
-    ./build.sh
-    ctest --output-on-failure --test-dir ./build/tests
-}
-
-main
+./build.sh
+ctest --output-on-failure --test-dir ./build/tests
