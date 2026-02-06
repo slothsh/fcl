@@ -22,6 +22,7 @@ public:
         FAILED_TO_RESOLVE_INCLUDE_PATH,
         FAILED_TO_RESOLVE_INCLUDES,
         FAILED_TO_BUILD_SYMBOL_TABLE,
+        FAILED_TO_GET_ARGUMENT,
         NULL_AST_POINTER,
         NULL_SELF_POINTER,
         CHILD_NOT_FOUND,
@@ -40,6 +41,32 @@ public:
     std::expected<void, Error> visitIncludes(NodePtr& ast);
     std::expected<void, Error> visitSpliceIncludes(Node* parent, Node* me, NodePtr& splice);
     std::expected<Node*, Error> findNearestRootAncestor(Node* me);
+
+    template<IsFunctionArgument ArgName, IsSubscriptable<typename ArgName::VariantType> Args>
+    auto& getArgument(Args const& arguments) const {
+        return ArgName::unwrap(std::get<typename ArgName::InnerType>(*arguments[ArgName::Index]));
+    }
+
+    template<IsFunctionArgument ArgName, IsSubscriptable<typename ArgName::VariantType> Args>
+    auto& getArgumentChecked(Args const& arguments) const {
+        auto const visitor = Visitors {
+            // [this, &arguments](SymbolReferenceExpression& symbol_expression) -> ArgName::ReturnType {
+            //     auto const data = m_symbol_table.lookup(std::string_view{symbol_expression.symbol.data}, m_namespace_buffer);
+            //     if (!data) {
+            //         return {};
+            //     }
+            //     return {};
+            // },
+            [&arguments](ArgName::InnerType& inner) -> ArgName::ReturnType {
+                return ArgName::unwrap(inner);
+            },
+            [](auto&& node) -> ArgName::ReturnType {
+                TODO("unreachable: {}", node.kind);
+            }
+        };
+
+        return std::visit(visitor, *arguments.at(ArgName::Index));
+    }
 
     NodePtr const& ast() const;
 

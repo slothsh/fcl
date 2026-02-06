@@ -30,6 +30,7 @@ inline namespace {
         FORWARD_VISITOR(ConfAnalyzer::visitNumberExpression),
         FORWARD_VISITOR(ConfAnalyzer::visitPathExpression),
         FORWARD_VISITOR(ConfAnalyzer::visitShellExpression),
+        FORWARD_VISITOR(ConfAnalyzer::visitSymbolReferenceExpression),
     };
 }
 
@@ -130,6 +131,10 @@ std::expected<void, ConfAnalyzer::Error> ConfAnalyzer::visitShellExpression(Shel
     return {};
 }
 
+std::expected<void, ConfAnalyzer::Error> ConfAnalyzer::visitSymbolReferenceExpression(SymbolReferenceExpression const& node) noexcept {
+    WARN("not implemented");
+    return {};
+}
 
 std::expected<void, ConfAnalyzer::Error> ConfAnalyzer::typeCheckFunctionArguments(std::vector<NodePtr> const& argument_nodes, KeywordSchema const& schema) noexcept {
     using TokenKindResult = std::expected<TokenKind, Error>;
@@ -140,11 +145,12 @@ std::expected<void, ConfAnalyzer::Error> ConfAnalyzer::typeCheckFunctionArgument
     }
 
     auto const visitor = Visitors {
-        [](StringExpression const& string_expression) -> TokenKindResult { return string_expression.token.kind; },
-        [](NumberExpression const& number_expression) -> TokenKindResult { return number_expression.token.kind; },
-        [](PathExpression const& path_expression)     -> TokenKindResult { return path_expression.token.kind; },
-        [](ShellExpression const& shell_expression)   -> TokenKindResult { return shell_expression.command.kind; },
-        [](auto const&)                               -> TokenKindResult { return std::unexpected(FUNCTION_INVALID_EXPRESSION); }
+        [](StringExpression const& string_expression)          -> TokenKindResult { return string_expression.token.kind; },
+        [](NumberExpression const& number_expression)          -> TokenKindResult { return number_expression.token.kind; },
+        [](PathExpression const& path_expression)              -> TokenKindResult { return path_expression.token.kind; },
+        [](ShellExpression const& shell_expression)            -> TokenKindResult { return shell_expression.command.kind; },
+        [](SymbolReferenceExpression const& symbol_expression) -> TokenKindResult { return symbol_expression.symbol.kind; },
+        [](auto const&)                                        -> TokenKindResult { return std::unexpected(FUNCTION_INVALID_EXPRESSION); }
     };
 
     for (auto const& [node, allowed_types] : std::views::zip(argument_nodes, schema.parameters)) {

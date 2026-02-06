@@ -12,6 +12,7 @@ export struct Symbol {
     explicit constexpr Symbol(std::string_view name, NamespaceType const& namespaces, Node* node, SymbolConstantness constantness);
 
     static std::string toFullyQualifiedName(Symbol&& symbol);
+    static std::string toFullyQualifiedName(std::string_view name, NamespaceType& namespaces);
 
     std::string_view name;
     NamespaceType namespaces;

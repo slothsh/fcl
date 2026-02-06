@@ -32,6 +32,7 @@ public:
     static std::expected<void, Error> visitNumberExpression(Conf::Language::NumberExpression const& node) noexcept;
     static std::expected<void, Error> visitPathExpression(Conf::Language::PathExpression const& node) noexcept;
     static std::expected<void, Error> visitShellExpression(Conf::Language::ShellExpression const& node) noexcept;
+    static std::expected<void, Error> visitSymbolReferenceExpression(Conf::Language::SymbolReferenceExpression const& node) noexcept;
 
     static std::expected<void, Error> typeCheckFunctionArguments(std::vector<Conf::Language::NodePtr> const& arguments, Conf::Language::KeywordSchema const& schema) noexcept;
 

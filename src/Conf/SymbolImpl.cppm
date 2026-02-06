@@ -38,3 +38,25 @@ std::string Symbol::toFullyQualifiedName(Symbol&& symbol) {
 
     return fully_qualified_name;
 }
+
+std::string Symbol::toFullyQualifiedName(std::string_view name, NamespaceType& namespaces) {
+    auto size = std::ranges::fold_left(
+        namespaces | std::views::transform([](std::string_view ns) {
+            return ns.size();
+        }),
+        0z,
+        [](std::size_t acc, std::size_t n) {
+            return acc + n;
+        }
+    );
+
+    std::string fully_qualified_name(size + namespaces.size() * (sizeof(STRING_PERIOD) - 1) + name.size(), '\0');
+    for (auto const& ns : namespaces) {
+        std::ranges::copy(ns, std::back_inserter(fully_qualified_name));
+        std::ranges::copy(STRING_PERIOD, std::back_inserter(fully_qualified_name));
+    }
+
+    std::ranges::copy(name, std::back_inserter(fully_qualified_name));
+
+    return fully_qualified_name;
+}

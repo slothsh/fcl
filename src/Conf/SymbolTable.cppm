@@ -20,5 +20,10 @@ export struct SymbolTable {
         return {};
     }
 
+    std::optional<std::reference_wrapper<Symbol>> lookup(std::string_view symbol_name, NamespaceType const& namespaces) const noexcept {
+        // auto fully_qualified_name = 
+        return std::nullopt;
+    }
+
     std::unordered_map<std::string, Symbol> table;
 };

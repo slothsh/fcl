@@ -68,6 +68,10 @@ void printAst(NodePtr const& node, int indent = 0) {
             std::println("{:>{}}{}", " ", indent, node.token.data);
             std::println("{:>{}}parent: {}", " ", indent, (void*)node.parent);
         },
+        [&](SymbolReferenceExpression const& node) {
+            std::println("{:>{}}{}", " ", indent, node.kind);
+            std::println("{:>{}}{}", " ", indent, node.symbol.data);
+        },
     };
 
     std::visit(visitor, *node);
@@ -78,7 +82,7 @@ TEST_CASE("Load Simple Configuration File", "[confloader]") {
         auto conf_evaluator = ConfEvaluator{"./data/Config.conf"};
         auto const result = conf_evaluator.load();
 
-        // printAst(conf_evaluator.ast());
+        printAst(conf_evaluator.ast());
 
         if (!result) {
             FAIL("Loading config @ ./data/Config.conf failed");

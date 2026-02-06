@@ -57,10 +57,8 @@ std::expected<void, Error> ConfEvaluator::analyzeAst() const {
 }
 
 std::expected<void, Error> ConfEvaluator::preProcess() {
-    auto r = this->visitSymbolTable(m_ast)
+    return this->visitSymbolTable(m_ast)
         .and_then([this]() { return this->visitIncludes(m_ast); });
-
-    return r;
 }
 
 std::expected<void, Error> ConfEvaluator::evaluate(NodePtr& ast) const {
@@ -71,10 +69,10 @@ std::expected<void, Error> ConfEvaluator::evaluate(NodePtr& ast) const {
     }
 
     auto const visitor = Visitors {
-        [](KeywordStatement& keyword_statement) -> ReturnType {
+        [this](KeywordStatement& keyword_statement) -> ReturnType {
             if (keyword_statement.keyword.kind == KEYWORD_PRINT) {
-                auto const& arg1 = get_argument_checked<KeywordPrint::StringArg>(keyword_statement.arguments);
-                auto const& arg2 = get_argument_checked<KeywordPrint::NumberArg>(keyword_statement.arguments);
+                auto const& arg1 = this->getArgumentChecked<KeywordPrint::StringArg>(keyword_statement.arguments);
+                auto const& arg2 = this->getArgumentChecked<KeywordPrint::NumberArg>(keyword_statement.arguments);
             }
 
             return {};
@@ -191,7 +189,7 @@ std::expected<void, Error> ConfEvaluator::visitIncludes(NodePtr& ast) {
                 return std::unexpected(FAILED_TO_RESOLVE_INCLUDE_PATH);
             }
 
-            auto const& path_expression = get_argument_checked<KeywordInclude::FilePathArg>(keyword_statement.arguments);
+            auto const& path_expression = this->getArgumentChecked<KeywordInclude::FilePathArg>(keyword_statement.arguments);
             auto const include_path = path_expression.token.kind == PATH_LITERAL_ABSOLUTE
                 ? std::filesystem::path(path_expression.token.data)
                 : std::filesystem::weakly_canonical(parent_directory.value() / path_expression.token.data);
@@ -243,7 +241,10 @@ std::expected<void, Error> ConfEvaluator::visitIncludes(NodePtr& ast) {
 
             if constexpr (has_children) {
                 for (auto& child : ast.nodes) {
-                    return this->visitIncludes(child);
+                    auto include_result = this->visitIncludes(child);
+                    if (!include_result) {
+                        return std::unexpected(FAILED_TO_RESOLVE_INCLUDES);
+                    }
                 }
             }
 

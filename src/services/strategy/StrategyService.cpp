@@ -1,3 +1,0 @@
-StrategyService::StrategyService() {}
-
-StrategyService::~StrategyService() {}

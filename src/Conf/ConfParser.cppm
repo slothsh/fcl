@@ -30,6 +30,7 @@ public:
     std::optional<NodePtr> takeNumberExpression(Token const& token, NodePtr& parent);
     std::optional<NodePtr> takePathExpression(Token const& token, NodePtr& parent);
     std::optional<NodePtr> takeShellExpression(Token const& token, NodePtr& parent);
+    std::optional<NodePtr> takeSymbolReferenceExpression(Token const& token, NodePtr& parent);
 
 private:
     std::size_t m_cursor;

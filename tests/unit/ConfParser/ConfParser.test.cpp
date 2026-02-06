@@ -60,6 +60,10 @@ void printAst(typename ConfParser::NodePtr const& node, int indent = 0) {
             std::println("{:>{}}{}", " ", indent, node.kind);
             std::println("{:>{}}{}", " ", indent + 4, node.token.data);
         },
+        [&](SymbolReferenceExpression const& node) {
+            std::println("{:>{}}{}", " ", indent, node.kind);
+            std::println("{:>{}}{}", " ", indent, node.symbol.data);
+        },
     };
 
     std::visit(visitor, *node);

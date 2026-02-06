@@ -277,6 +277,7 @@ enum class NodeKind {
     NUMBER_EXPRESSION,
     PATH_EXPRESSION,
     SHELL_EXPRESSION,
+    SYMBOL_REFERENCE_EXPRESSION,
 };
 
 struct FilePathRootBlock;
@@ -289,6 +290,7 @@ struct StringExpression;
 struct NumberExpression;
 struct PathExpression;
 struct ShellExpression;
+struct SymbolReferenceExpression;
 
 using Node = std::variant<
     FilePathRootBlock,
@@ -300,7 +302,8 @@ using Node = std::variant<
     StringExpression,
     NumberExpression,
     PathExpression,
-    ShellExpression
+    ShellExpression,
+    SymbolReferenceExpression
 >;
 
 using NodePtr = std::unique_ptr<Node>;
@@ -382,6 +385,13 @@ struct ShellExpression {
     Node* parent;
 };
 
+struct SymbolReferenceExpression {
+    NodeKind kind;
+    Token symbol;
+    Node* me;
+    Node* parent;
+};
+
 // Function/Keyword Schemas
 
 struct KeywordSchema {
@@ -444,18 +454,6 @@ enum class SymbolConstantness {
     VARIABLE,
     CONSTANT,
 };
-
-// Function/Keyword Helpers
-
-template<IsFunctionArgument ArgName, IsSubscriptable<typename ArgName::VariantType> Args>
-auto& get_argument(Args const& arguments) {
-    return ArgName::unwrap(std::get<typename ArgName::InnerType>(*arguments[ArgName::Index]));
-}
-
-template<IsFunctionArgument ArgName, IsSubscriptable<typename ArgName::VariantType> Args>
-auto& get_argument_checked(Args const& arguments) {
-    return ArgName::unwrap(std::get<typename ArgName::InnerType>(*arguments.at(ArgName::Index)));
-}
 
 // Concepts
 
@@ -562,6 +560,7 @@ struct std::formatter<Conf::Language::NodeKind> : std::formatter<std::string_vie
             case NUMBER_EXPRESSION:              return "NUMBER_EXPRESSION";
             case PATH_EXPRESSION:                return "PATH_EXPRESSION";
             case SHELL_EXPRESSION:               return "SHELL_EXPRESSION";
+            case SYMBOL_REFERENCE_EXPRESSION:    return "SYMBOL_REFERENCE_EXPRESSION";
         }
     }
 

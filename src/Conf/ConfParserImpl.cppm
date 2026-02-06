@@ -147,6 +147,10 @@ std::expected<NodePtr, Error> ConfParser::parse(NodePtr& parent) {
                 return std::move(constant_assignment_expression.value());
             }
 
+            if (auto symbol_reference_expression = this->takeSymbolReferenceExpression(head.front(), parent)) {
+                return std::move(symbol_reference_expression.value());
+            }
+
             m_cursor = reset;
         } break;
 
@@ -515,6 +519,27 @@ std::optional<NodePtr> ConfParser::takeShellExpression(Token const& token, NodeP
     );
 
     std::get<ShellExpression>(*root).me = root.get();
+
+    return root;
+}
+
+std::optional<NodePtr> ConfParser::takeSymbolReferenceExpression(Token const& token, NodePtr& parent) {
+    if (token.kind != IDENTIFIER) {
+        return std::nullopt;
+    }
+
+    auto root = std::make_unique<Node>(
+        Node {
+            SymbolReferenceExpression {
+                .kind = SYMBOL_REFERENCE_EXPRESSION,
+                .symbol = token,
+                .me = nullptr,
+                .parent = parent.get(),
+            }
+        }
+    );
+
+    std::get<SymbolReferenceExpression>(*root).me = root.get();
 
     return root;
 }
